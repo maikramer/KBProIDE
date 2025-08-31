@@ -40,35 +40,7 @@
 
     <div class="modern-toolbar__divider"></div>
 
-    <!-- Editor Mode Selection -->
-    <div class="modern-toolbar__section">
-      <button 
-        class="modern-btn modern-btn--icon" 
-        :class="{ 'modern-btn--active': $global.editor.mode === 1 }"
-        @click="$global.$emit('editor-mode-change', 1)"
-        title="Modo Blocos"
-      >
-        <i class="fa fa-puzzle-piece"></i>
-      </button>
-      <button 
-        class="modern-btn modern-btn--icon" 
-        :class="{ 'modern-btn--active': $global.editor.mode === 2 }"
-        @click="$global.$emit('editor-mode-change', 2)"
-        title="Modo Misto"
-      >
-        <i class="fa fa-columns"></i>
-      </button>
-      <button 
-        class="modern-btn modern-btn--icon" 
-        :class="{ 'modern-btn--active': $global.editor.mode === 3 }"
-        @click="$global.$emit('editor-mode-change', 3)"
-        title="Modo Código"
-      >
-        <i class="fa fa-code"></i>
-      </button>
-    </div>
 
-    <div class="modern-toolbar__divider"></div>
 
     <!-- Board Selection -->
     <div class="modern-toolbar__section">

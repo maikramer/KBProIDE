@@ -110,12 +110,11 @@ export default {
       }
 
       try {
-        // For web-only build, we'll create a simple fallback editor
-        // In a real implementation, you would load Monaco from CDN or bundle it
-        console.warn('Monaco Editor not available, using fallback textarea');
-        this.createFallbackEditor();
+        // Try to load Monaco from CDN
+        await this.loadMonacoFromCDN();
+        this.isMonacoLoaded = true;
       } catch (error) {
-        console.error('Failed to load Monaco Editor:', error);
+        console.warn('Monaco Editor not available, using fallback textarea');
         this.createFallbackEditor();
       }
     },
@@ -130,10 +129,13 @@ export default {
       textarea.style.resize = 'none';
       textarea.style.fontFamily = 'Monaco, Consolas, "Courier New", monospace';
       textarea.style.fontSize = '14px';
-      textarea.style.padding = '10px';
-      textarea.style.backgroundColor = this.theme === 'vs-dark' ? '#1e1e1e' : '#ffffff';
-      textarea.style.color = this.theme === 'vs-dark' ? '#d4d4d4' : '#000000';
-      textarea.style.lineHeight = '1.5';
+      textarea.style.padding = '12px';
+      textarea.style.backgroundColor = this.theme === 'vs-dark' ? '#0f172a' : '#ffffff';
+      textarea.style.color = this.theme === 'vs-dark' ? '#e2e8f0' : '#000000';
+      textarea.style.lineHeight = '1.6';
+      textarea.style.tabSize = '2';
+      textarea.style.borderRadius = '6px';
+      textarea.style.boxSizing = 'border-box';
 
       // Add event listeners
       textarea.addEventListener('input', (e) => {
@@ -204,6 +206,35 @@ export default {
     },
     getEditor() {
       return this.editor;
+    },
+    async loadMonacoFromCDN() {
+      return new Promise((resolve, reject) => {
+        if (window.monaco) {
+          resolve(window.monaco);
+          return;
+        }
+
+        // Load Monaco Editor from CDN
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs/loader.min.js';
+        script.onload = () => {
+          window.require.config({ 
+            paths: { 
+              vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs' 
+            } 
+          });
+          
+          window.require(['vs/editor/editor.main'], () => {
+            window.monaco = window.monaco || {};
+            resolve(window.monaco);
+          });
+        };
+        script.onerror = () => {
+          reject(new Error('Failed to load Monaco Editor from CDN'));
+        };
+        
+        document.head.appendChild(script);
+      });
     },
     resize() {
       if (this.editor && this.editor.layout) {

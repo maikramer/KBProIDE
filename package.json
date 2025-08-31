@@ -23,7 +23,7 @@
     "marked": "^8.0.0",
     "material-design-icons-iconfont": "^5.0.1",
     "mitt": "^3.0.1",
-    "monaco-editor": "^0.43.0",
+    "monaco-editor": "^0.52.2",
     "monaco-themes": "^0.3.3",
     "sass": "^1.69.0",
     "nprogress": "^0.2.0",

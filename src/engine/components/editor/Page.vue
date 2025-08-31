@@ -1,31 +1,50 @@
 <template>
   <div class="modern-editor-page">
       <ModernEditorToolbar
-        :mode="$global.editor.mode"
-        @new-file="$global.$emit('file-new')"
-        @open-file="$global.$emit('file-open')"
-        @save-file="$global.$emit('file-save')"
-        @set-mode="(m)=> $global.$emit('editor-mode-change', m)"
+        :mode="currentMode"
+          @new-file="$global.$emit('file-new')"
+          @open-file="$global.$emit('file-open')"
+          @save-file="$global.$emit('file-save')"
+        @set-mode="onModeChange"
       />
       
               <div class="modern-editor-content">
           <!-- Mode 1: Blockly Only -->
-          <div v-if="$global.editor.mode === 1" class="editor-mode-single">
+          <div 
+            class="editor-mode-single"
+            :style="{ display: currentMode === 1 ? 'flex' : 'none' }"
+          >
             <div id="blocklyDiv" class="modern-blockly-workspace"></div>
           </div>
 
           <!-- Mode 2: Blockly + Code (Resizable) -->
-          <multipane 
-            v-else-if="$global.editor.mode === 2" 
+        <multipane
             class="editor-mode-split"
             layout="vertical"
             @paneResizeStop="onEditorPaneResize"
+            :style="{ display: currentMode === 2 ? 'flex' : 'none' }"
           >
             <!-- Blockly Panel -->
             <div class="blockly-panel" :style="{ minWidth: '300px', width: blocklyPanelWidth + 'px' }">
               <div class="panel-header">
                 <i class="fa fa-puzzle-piece"></i>
                 <span>Blocos Visuais</span>
+                <div class="panel-header__actions">
+                  <button 
+                    class="panel-action"
+                    @click="generateCodeFromBlocks"
+                    title="Gerar Código C++"
+                  >
+                    <i class="fa fa-arrow-right"></i>
+                  </button>
+                  <button 
+                    class="panel-action"
+                    @click="clearWorkspace"
+                    title="Limpar Workspace"
+                  >
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
               </div>
               <div id="blocklyDiv" class="modern-blockly-workspace"></div>
             </div>
@@ -37,7 +56,30 @@
             <div class="code-panel" style="flex: 1; min-width: 300px;">
               <div class="panel-header">
                 <i class="fa fa-code"></i>
-                <span>Editor de Código</span>
+                <span>Editor de Código C++</span>
+                <div class="panel-header__actions">
+                  <button 
+                    class="panel-action"
+                    @click="formatCode"
+                    title="Formatar Código"
+                  >
+                    <i class="fa fa-indent"></i>
+                  </button>
+                  <button 
+                    class="panel-action"
+                    @click="validateCode"
+                    title="Validar Sintaxe"
+                  >
+                    <i class="fa fa-check"></i>
+                  </button>
+                  <button 
+                    class="panel-action"
+                    @click="copyCode"
+                    title="Copiar Código"
+                  >
+                    <i class="fa fa-copy"></i>
+                  </button>
+                </div>
               </div>
               <div class="modern-code-editor-container">
                 <MonacoEditor
@@ -53,10 +95,50 @@
           </multipane>
 
           <!-- Mode 3: Code Only -->
-          <div v-else class="editor-mode-single">
+          <div 
+            class="editor-mode-single"
+            :style="{ display: currentMode === 3 ? 'flex' : 'none' }"
+          >
             <div class="panel-header">
               <i class="fa fa-code"></i>
-              <span>Editor de Código</span>
+              <span>Editor de Código Arduino</span>
+              <div class="panel-header__actions">
+                <button 
+                  class="panel-action"
+                  @click="newArduinoSketch"
+                  title="Novo Sketch"
+                >
+                  <i class="fa fa-file-o"></i>
+                </button>
+                <button 
+                  class="panel-action"
+                  @click="formatCode"
+                  title="Formatar Código"
+                >
+                  <i class="fa fa-indent"></i>
+                </button>
+                <button 
+                  class="panel-action"
+                  @click="validateCode"
+                  title="Validar Sintaxe"
+                >
+                  <i class="fa fa-check"></i>
+                </button>
+                <button 
+                  class="panel-action"
+                  @click="copyCode"
+                  title="Copiar Código"
+                >
+                  <i class="fa fa-copy"></i>
+                </button>
+                <button 
+                  class="panel-action"
+                  @click="compileCode"
+                  title="Compilar"
+                >
+                  <i class="fa fa-play"></i>
+                </button>
+              </div>
             </div>
             <div class="modern-code-editor-container">
               <MonacoEditor
@@ -70,11 +152,11 @@
             </div>
           </div>
         </div>
-          <xml id="toolbox" ref="toolbox" style="display: none">
+            <xml id="toolbox" ref="toolbox" style="display: none">
               <category name="Básico" colour="160" icon="/static/icons/SVG/c1.svg">
-                  <block type="basic_led16x8"></block>
-              </category>
-          </xml>
+                    <block type="basic_led16x8"></block>
+                </category>
+            </xml>
 
           <!-- Variable Dialog - Hidden for now, replaced by modern panel -->
           <div v-if="false" style="display: none;">
@@ -84,24 +166,24 @@
           <!-- Camera Dialog - Disabled to prevent UI issues -->
           <div v-if="false" style="display: none;">
               <!-- Removed camera dialog that was causing bottom bar -->
-          </div>
+                                </div>
 
-          <v-dialog v-model="musicDialog" max-width="785px">
-              <piano-dialog
-                      ref="musicNotes"
-                      @close="() => { musicDialog = false; }"
-              ></piano-dialog>
-          </v-dialog>
-          <v-dialog v-model="ttsDialog" max-width="600px">
-              <t-t-s-dialog
-                      ref="ttsWords"
-                      @close="() => { ttsDialog = false; }"
-              ></t-t-s-dialog>
-          </v-dialog>
-      </div>
-      <!-- end -->
-      <multipane-resizer v-if="this.$global.editor.mode == 2"></multipane-resizer>
-      <!-- source code -->
+            <v-dialog v-model="musicDialog" max-width="785px">
+                <piano-dialog
+                        ref="musicNotes"
+                        @close="() => { musicDialog = false; }"
+                ></piano-dialog>
+            </v-dialog>
+            <v-dialog v-model="ttsDialog" max-width="600px">
+                <t-t-s-dialog
+                        ref="ttsWords"
+                        @close="() => { ttsDialog = false; }"
+                ></t-t-s-dialog>
+            </v-dialog>
+        </div>
+        <!-- end -->
+        <multipane-resizer v-if="this.$global.editor.mode == 2"></multipane-resizer>
+        <!-- source code -->
       
 </template>
 <script>
@@ -178,49 +260,54 @@
 
   // Registrar blocos customizados mínimos para web (ex.: ESP32)
   const ensureWebCustomBlocks = function(){
+    console.log('Defining custom blocks for web...');
     try {
       if (!Blockly || !Blockly.Blocks) { return; }
+      // Define all blocks here in ensureWebCustomBlocks
+      console.log('Defining ALL custom blocks...');
+      
+      // ESP32 Blocks
       if (!Blockly.Blocks["gpio_set_mode"]) {
+        console.log('Creating gpio_set_mode in ensureWebCustomBlocks');
         Blockly.Blocks["gpio_set_mode"] = {
           init: function(){
-            this.appendValueInput("PIN").setCheck("Number").appendField("set pin");
-            this.appendDummyInput().appendField("mode").appendField(new Blockly.FieldDropdown([["OUTPUT","OUTPUT"],["INPUT","INPUT"]]), "MODE");
+            this.appendDummyInput()
+                .appendField("configurar pino")
+                .appendField(new Blockly.FieldNumber(13, 0, 39), "PIN")
+                .appendField("como")
+                .appendField(new Blockly.FieldDropdown([["saída","OUTPUT"], ["entrada","INPUT"]]), "MODE");
             this.setPreviousStatement(true, null);
             this.setNextStatement(true, null);
-            this.setColour(20);
-            this.setTooltip(""); this.setHelpUrl("");
+            this.setColour('#A65C81');
+            this.setTooltip("Configura pino como entrada ou saída"); 
+            this.setHelpUrl("");
           }
         };
       }
+      
       if (!Blockly.Blocks["gpio_digital_write"]) {
+        console.log('Creating gpio_digital_write in ensureWebCustomBlocks');
         Blockly.Blocks["gpio_digital_write"] = {
           init: function(){
-            this.appendValueInput("PIN").setCheck("Number").appendField("digital write pin");
-            this.appendValueInput("VAL").appendField("value");
+            this.appendDummyInput()
+                .appendField("escrever pino")
+                .appendField(new Blockly.FieldNumber(13, 0, 39), "PIN")
+                .appendField("valor")
+                .appendField(new Blockly.FieldDropdown([["HIGH","HIGH"], ["LOW","LOW"]]), "VALUE");
             this.setPreviousStatement(true, null);
             this.setNextStatement(true, null);
-            this.setColour(20);
-            this.setTooltip(""); this.setHelpUrl("");
+            this.setColour('#A65C81');
+            this.setTooltip("Escreve HIGH ou LOW em pino digital"); 
+            this.setHelpUrl("");
           }
         };
       }
-      if (javascriptGenerator && javascriptGenerator.forBlock) {
-        if (!javascriptGenerator.forBlock["gpio_set_mode"]) {
-          javascriptGenerator.forBlock["gpio_set_mode"] = function(block){
-            const pin = javascriptGenerator.valueToCode(block, "PIN", javascriptGenerator.ORDER_NONE) || "0";
-            const mode = block.getFieldValue("MODE") || "OUTPUT";
-            return `// gpio_set_mode(${pin}, ${mode})\n`;
-          };
-        }
-        if (!javascriptGenerator.forBlock["gpio_digital_write"]) {
-          javascriptGenerator.forBlock["gpio_digital_write"] = function(block){
-            const pin = javascriptGenerator.valueToCode(block, "PIN", javascriptGenerator.ORDER_NONE) || "0";
-            const val = javascriptGenerator.valueToCode(block, "VAL", javascriptGenerator.ORDER_NONE) || "false";
-            return `// gpio_digital_write(${pin}, ${val})\n`;
-          };
-        }
-      }
-    } catch(e) {}
+      
+      console.log('Sensor and actuator blocks will be defined in mounted');
+      console.log('All custom blocks defined in ensureWebCustomBlocks');
+    } catch(e) {
+      console.error('Error defining custom blocks:', e);
+    }
   };
 
   // Utilitário: download de arquivo no navegador
@@ -234,34 +321,10 @@
     } catch(e) {}
   };
 
-  let fs = null; try { if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
-  // === engine ===
-  import plug from "@/engine/PluginManager";
-  // === dialog ===
-  //import VariableNamingDialog from "@/engine/views/dialog/VariableNamingDialog";
-  //import PianoDialog from "@/engine/views/dialog/PianoDialog";
-  //import TTSDialog from "@/engine/views/dialog/TTSDialog";
-
-  // === Node.js ===
-  let exec = null; try { if (isElectron) { exec = require("child_process").exec; } } catch(e) { exec = null; }
-  let os = null; try { if (isElectron) { os = require("os"); } } catch(e) { os = { platform(){ return 'linux'; } } }
-
-  const htmlEntities = function(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
-
-  const language = "en";
-
-  var editor_interval = null;
-
   var myself = null;
 
   export default {
+
     components: { 
       EditorTopbar, 
       ModernEditorToolbar,
@@ -305,7 +368,7 @@
             {
               kind: 'category',
               name: 'Logic',
-              categorystyle: 'logic_category',
+              colour: '#5C81A6',
               contents: [
                 { kind: 'block', type: 'controls_if' },
                 { kind: 'block', type: 'logic_compare' },
@@ -317,7 +380,7 @@
             {
               kind: 'category',
               name: 'Loops',
-              categorystyle: 'loop_category',
+              colour: '#5CA65C',
               contents: [
                 { kind: 'block', type: 'controls_repeat_ext' },
                 { kind: 'block', type: 'controls_whileUntil' },
@@ -328,7 +391,7 @@
             {
               kind: 'category',
               name: 'Math',
-              categorystyle: 'math_category',
+              colour: '#5C68A6',
               contents: [
                 { kind: 'block', type: 'math_number' },
                 { kind: 'block', type: 'math_arithmetic' },
@@ -339,7 +402,7 @@
             {
               kind: 'category',
               name: 'Text',
-              categorystyle: 'text_category',
+              colour: '#5CA68D',
               contents: [
                 { kind: 'block', type: 'text' },
                 { kind: 'block', type: 'text_join' },
@@ -350,7 +413,7 @@
             {
               kind: 'category',
               name: 'ESP32',
-              categorystyle: 'esp32_category',
+              colour: '#A65C81',
               contents: [
                 { kind: 'block', type: 'gpio_set_mode' },
                 { kind: 'block', type: 'gpio_digital_write' },
@@ -367,7 +430,7 @@
             {
               kind: 'category',
               name: 'Sensores',
-              categorystyle: 'sensor_category',
+              colour: '#FF6B6B',
               contents: [
                 { kind: 'block', type: 'dht_read' },
                 { kind: 'block', type: 'ultrasonic_read' },
@@ -379,7 +442,7 @@
             {
               kind: 'category',
               name: 'Atuadores',
-              categorystyle: 'actuator_category',
+              colour: '#4ECDC4',
               contents: [
                 { kind: 'block', type: 'servo_write' },
                 { kind: 'block', type: 'led_write' },
@@ -460,11 +523,15 @@
           }
         ],
         blocklyPanelWidth: 500, // Default width for blockly panel in split mode
+        saveTimeout: null, // For throttled saving
         lightThemeArray: ["red", "purple", "indigo", "pink"],
         darkThemeArray: ["blue", "lightBlue", "teal", "orange", "cyan", "green"]
       };
     },
     computed: {
+      currentMode() {
+        return this.$global?.editor?.mode || 1;
+      },
       editorPanels() {
         const mode = this.$global.editor.mode;
         const panels = [];
@@ -498,6 +565,12 @@
         }
         
         return panels;
+      }
+    },
+    watch: {
+      currentMode(newMode, oldMode) {
+        console.log(`Watch: Mode changed from ${oldMode} to ${newMode}`);
+        // Let CSS handle the display, no complex logic here
       }
     },
     created() {
@@ -652,11 +725,26 @@
       });
     },
     mounted() {
+      console.log('Page.vue mounted, current mode:', this.$global.editor.mode);
+      
       /* Monaco config */
       if (this.$global.editor.mode < 3) {
         this.$global.editor.editor_options.readOnly = true;
       } else {
         this.$global.editor.editor_options.readOnly = false;
+      }
+      
+      // First, ensure all custom blocks are defined
+      ensureWebCustomBlocks();
+      
+      // Add missing blocks after Blockly is loaded
+      this.addMissingBlocks();
+      
+      // Initialize Blockly if in blockly modes
+      if (this.$global.editor.mode <= 2) {
+        this.$nextTick(() => {
+          this.initializeBlocklyFromMounted();
+        });
       }
 
       Blockly.setLocale(En);
@@ -699,47 +787,45 @@
       
       // Apply modern theme and register category styles
       try {
-        // Register category styles first
-        Blockly.registry.register(
-          Blockly.registry.Type.THEME,
-          'kbide-modern',
-          {
-            name: 'kbide-modern',
-            base: Blockly.Themes.Classic,
-            categoryStyles: {
-              logic_category: { colour: '#5C81A6' },
-              loop_category: { colour: '#5CA65C' },
-              math_category: { colour: '#5C68A6' },
-              text_category: { colour: '#5CA68D' },
-              esp32_category: { colour: '#A65C81' },
-              sensor_category: { colour: '#FF6B6B' },
-              actuator_category: { colour: '#4ECDC4' },
-            },
-            blockStyles: {
-              logic_blocks: { colourPrimary: '#5C81A6' },
-              loop_blocks: { colourPrimary: '#5CA65C' },
-              math_blocks: { colourPrimary: '#5C68A6' },
-              text_blocks: { colourPrimary: '#5CA68D' },
-              esp32_blocks: { colourPrimary: '#A65C81' },
-              sensor_blocks: { colourPrimary: '#FF6B6B' },
-              actuator_blocks: { colourPrimary: '#4ECDC4' },
-            },
-            componentStyles: {
-              workspaceBackgroundColour: '#0f172a',
-              toolboxBackgroundColour: '#1e293b',
-              toolboxForegroundColour: '#e2e8f0',
-              flyoutBackgroundColour: '#334155',
-              flyoutForegroundColour: '#e2e8f0',
-              flyoutOpacity: 0.95,
-              scrollbarColour: '#475569',
-              insertionMarkerColour: '#3b82f6',
-              insertionMarkerOpacity: 0.3,
-              cursorColour: '#e2e8f0'
-            }
-          }
-        );
+        // Check if theme is already registered
+        const themeId = 'kbide-modern-' + Date.now();
         
-        this.workspace.setTheme('kbide-modern');
+        const modernTheme = Blockly.Theme.defineTheme(themeId, {
+          name: themeId,
+          base: Blockly.Themes.Classic,
+          categoryStyles: {
+            logic_category: { colour: '#5C81A6' },
+            loop_category: { colour: '#5CA65C' },
+            math_category: { colour: '#5C68A6' },
+            text_category: { colour: '#5CA68D' },
+            esp32_category: { colour: '#A65C81' },
+            sensor_category: { colour: '#FF6B6B' },
+            actuator_category: { colour: '#4ECDC4' },
+          },
+          blockStyles: {
+            logic_blocks: { colourPrimary: '#5C81A6' },
+            loop_blocks: { colourPrimary: '#5CA65C' },
+            math_blocks: { colourPrimary: '#5C68A6' },
+            text_blocks: { colourPrimary: '#5CA68D' },
+            esp32_blocks: { colourPrimary: '#A65C81' },
+            sensor_blocks: { colourPrimary: '#FF6B6B' },
+            actuator_blocks: { colourPrimary: '#4ECDC4' },
+          },
+          componentStyles: {
+            workspaceBackgroundColour: '#0f172a',
+            toolboxBackgroundColour: '#1e293b',
+            toolboxForegroundColour: '#e2e8f0',
+            flyoutBackgroundColour: '#334155',
+            flyoutForegroundColour: '#e2e8f0',
+            flyoutOpacity: 0.95,
+            scrollbarColour: '#475569',
+            insertionMarkerColour: '#3b82f6',
+            insertionMarkerOpacity: 0.3,
+            cursorColour: '#e2e8f0'
+          }
+        });
+        
+        this.workspace.setTheme(modernTheme);
       } catch(e) {
         console.warn('Failed to apply modern theme:', e);
       }
@@ -752,8 +838,8 @@
           const result = window.prompt(message, defaultValue);
           callback(result);
         } catch(e) {
-          callback(null);
-        }
+            callback(null);
+          }
       };
       Blockly.music = function(notes, cb) {
         if (notes) {
@@ -859,8 +945,21 @@
       onCodeChange() {
         if (this.$global.editor.mode >= 2) {
           try {
-            this.updatecode();
-          } catch(e) {}
+            // In mixed mode, update the raw code but don't regenerate from blocks
+            // This allows manual code editing alongside blocks
+            console.log('Code changed manually in mixed mode');
+            
+            // Save the manually edited code
+            if (this.$global.editor.mode === 3) {
+              // Pure code mode - just save
+              localStorage.setItem('kb_manual_code', this.$global.editor.sourceCode);
+            } else if (this.$global.editor.mode === 2) {
+              // Mixed mode - allow manual editing but preserve blocks
+              localStorage.setItem('kb_mixed_code', this.$global.editor.sourceCode);
+            }
+          } catch(e) {
+            console.warn('Error handling code change:', e);
+          }
         }
       },
       onPanelResize({ index, size, direction }) {
@@ -1051,73 +1150,33 @@
         }
       },
       async onEditorModeChange(mode, convert = false, create_new = false) {
-        if (mode < 3) {
-          let xml = "";
-          if (
-            myself.$global.editor.blockCode !== "" &&
-            myself.$global.editor.blockCode !==
-            "<xml xmlns=\"http://www.w3.org/1999/xhtml\"><variables></variables></xml>"
-          ) {
-            let text = myself.$global.editor.blockCode;
-            try {
-              if (Blockly.Xml && typeof Blockly.Xml.textToDom === 'function') {
-                xml = Blockly.Xml.textToDom(text);
-              } else {
-                xml = xmlParser.parseFromString(text, 'text/xml');
-              }
-            } catch(e) { xml = null; }
-          } else {
-            let blocks = await loadBlock(myself.$global.board.board_info);
-            if (blocks.initial_blocks) {
-              try {
-                if (Blockly.Xml && typeof Blockly.Xml.textToDom === 'function') {
-                  xml = Blockly.Xml.textToDom(blocks.initial_blocks);
-                } else {
-                  xml = xmlParser.parseFromString(blocks.initial_blocks, 'text/xml');
-                }
-              } catch(e) { xml = null; }
-            }
-          }
-          myself.workspace.clear();
-          try {
-            if (xml) {
-              if (Blockly.Xml && typeof Blockly.Xml.domToWorkspace === 'function') {
-                Blockly.Xml.domToWorkspace(xml, myself.workspace);
-              } else {
-                // Fallback: ignore when Xml API not present
-              }
-            }
-          } catch(e) {}
-          setTimeout(() => {
-            Blockly.svgResize(this.workspace);
-          }, 300);
-        } else {
-          //------ generate template here ------//
-          const boardDirectory = `${this.$global.board.board_info.dir}`;
-          const platformDir = `${util.platformDir}/${this.$global.board.board_info.platform}`;
-          this.codegen = (util.requireFunc && isElectron) ? util.requireFunc(`${fs && fs.existsSync(`${boardDirectory}/codegen.js`)
-            ? boardDirectory
-            : platformDir}/codegen`) : null;
-          if (this.codegen && typeof this.codegen.generate === 'function') {
-            if (convert) {
-              const respCode = this.codegen.generate(this.$global.editor.rawCode);
-              myself.$global.editor.sourceCode = reformatCode(respCode.sourceCode);
-            } else if (create_new) {
-              const codeRes = this.codegen.generate("");
-              myself.$global.editor.sourceCode = reformatCode(codeRes.sourceCode);
-            }
+        // Minimal mode change handler to prevent freezing
+        console.log(`onEditorModeChange called for mode ${mode} - doing minimal work`);
+        
+        if (mode === 3) {
+          // Code mode: ensure we have template code
+          if (!this.$global.editor.sourceCode || create_new) {
+            this.$global.editor.sourceCode = `// Sketch Arduino
+#include <Arduino.h>
+
+void setup() {
+  Serial.begin(115200);
+  // Configuração inicial aqui
+}
+
+void loop() {
+  // Código principal aqui
+  delay(1000);
+}`;
           }
         }
-        const cm = this.getCm();
-        if (cm) {
-          // enable editing options if needed
-          // cm.updateOptions && cm.updateOptions({ readOnly: mode < 3 });
-        }
+        
+        console.log(`onEditorModeChange completed for mode ${mode}`);
       },
       onBoardChange: async function(boardInfo, first_init = false) {
         //reload plugin
         console.log("board changed resender toolbox");
-        this.$global.plugin.pluginInfo = plug.loadPlugin(this.$global.board.board_info);
+        this.$global.plugin.pluginInfo = this.$engine.pluginManager.loadPlugin(this.$global.board.board_info);
         try {
           if (typeof window !== 'undefined' && window.initBlockly && typeof window.initBlockly === 'function') {
             window.initBlockly(boardInfo);
@@ -1178,38 +1237,378 @@
         )[0].style.backgroundColor = util.ui.colorLuminance(theme, 0.2);
       },
       onResizePanel(pane, container, size) {
+        try {
+          if (this.workspace && this.workspace.getCanvas) {
         Blockly.svgResize(this.workspace);
         console.log("editor resized");
+          }
+        } catch(e) {
+          console.warn("Error resizing editor:", e);
+        }
       },
       updatecode(e) {
-        // real time reformat mode
+        // Simplified updatecode to prevent freezing during drag
         if (!this.workspace || !javascriptGenerator) { return; }
-        if (e.type != Blockly.Events.UI) {
+        
+        // Skip UI events and drag-related events to prevent freezing
+        if (e && (e.type === Blockly.Events.UI || 
+                 e.type === 'drag' || 
+                 e.type === 'ui' ||
+                 e.type === 'selected' ||
+                 e.type === 'click')) {
+          return; // Skip these events to prevent freezing during drag
+        }
+        
+        try {
+          // Very conservative approach - only update on specific events
+          if (!e || e.type === Blockly.Events.BLOCK_CREATE || e.type === Blockly.Events.BLOCK_DELETE) {
+            // Only generate code for create/delete, not for move/drag
           this.$global.editor.rawCode = javascriptGenerator.workspaceToCode(this.workspace);
+            
+            // Throttled save only
+            this.throttledSave();
+          }
+        } catch(error) {
+          console.warn('Error in updatecode:', error);
+        }
+      },
+      generateArduinoCode(rawCode) {
+        // Convert JavaScript-like code from Blockly to Arduino C++
+        if (!rawCode || rawCode.trim() === '') {
+          return `// Código gerado automaticamente do Blockly
+#include <Arduino.h>
+
+void setup() {
+  Serial.begin(115200);
+  // Inicialização aqui
+}
+
+void loop() {
+  // Arraste blocos para gerar código aqui
+  delay(1000);
+}`;
+        }
+        
+        let setupCode = '';
+        let loopCode = '';
+        let includeCode = '#include <Arduino.h>\n';
+        let variableCode = '';
+        
+        // Process the generated code line by line
+        const lines = rawCode.split('\n');
+        
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('//')) {
+            // Keep comments
+            loopCode += `  ${trimmed}\n`;
+            return;
+          }
+          
+          // Convert specific function calls
+          if (trimmed.includes('pinMode(')) {
+            // pinMode calls go to setup
+            setupCode += `  ${trimmed}\n`;
+          } else if (trimmed.includes('digitalWrite(') || 
+                    trimmed.includes('digitalRead(') ||
+                    trimmed.includes('analogRead(') ||
+                    trimmed.includes('delay(') ||
+                    trimmed.includes('Serial.')) {
+            // These go to loop
+            loopCode += `  ${trimmed}\n`;
+          } else if (trimmed.startsWith('var ') || trimmed.includes(' = ')) {
+            // Variable declarations
+            const cppVar = this.convertVariableDeclaration(trimmed);
+            if (cppVar) {
+              variableCode += `${cppVar}\n`;
+            }
+          } else if (trimmed.includes('if (') || 
+                    trimmed.includes('for (') ||
+                    trimmed.includes('while (')) {
+            // Control structures
+            loopCode += `  ${trimmed}\n`;
+          } else {
+            // Other code goes to loop
+            loopCode += `  ${trimmed}\n`;
+          }
+        });
+        
+        // Build final Arduino code
+        let finalCode = includeCode + '\n';
+        
+        if (variableCode) {
+          finalCode += '// Variáveis globais\n' + variableCode + '\n';
+        }
+        
+        finalCode += 'void setup() {\n';
+        finalCode += '  Serial.begin(115200);\n';
+        finalCode += setupCode || '  // Configuração inicial\n';
+        finalCode += '}\n\n';
+        
+        finalCode += 'void loop() {\n';
+        finalCode += loopCode || '  // Código principal\n  delay(1000);\n';
+        finalCode += '}\n';
+        
+        return finalCode;
+      },
+      convertVariableDeclaration(jsLine) {
+        // Convert JavaScript variable declarations to C++
+        const varMatch = jsLine.match(/var\s+(\w+)\s*=\s*(.+);?/);
+        if (varMatch) {
+          const varName = varMatch[1];
+          const varValue = varMatch[2];
+          
+          // Determine type based on value
+          if (varValue === 'true' || varValue === 'false') {
+            return `bool ${varName} = ${varValue};`;
+          } else if (varValue.match(/^\d+$/)) {
+            return `int ${varName} = ${varValue};`;
+          } else if (varValue.match(/^\d*\.\d+$/)) {
+            return `float ${varName} = ${varValue};`;
+          } else if (varValue.startsWith('"') && varValue.endsWith('"')) {
+            return `String ${varName} = ${varValue};`;
+          } else {
+            return `auto ${varName} = ${varValue};`;
+          }
+        }
+        return null;
+      },
+      onModeChange(mode) {
+        console.log(`Simple mode change to: ${mode}`);
+        
+        // Just update the mode, let Vue reactivity handle the rest
+        this.$global.editor.mode = mode;
+        
+        console.log(`Mode updated to ${mode}`);
+      },
+      throttledSave() {
+        // Throttle saving to prevent excessive writes during drag operations
+        if (this.saveTimeout) {
+          clearTimeout(this.saveTimeout);
+        }
+        
+        this.saveTimeout = setTimeout(() => {
           try {
             if (Blockly.serialization && Blockly.serialization.workspaces && typeof Blockly.serialization.workspaces.save === 'function') {
               const state = Blockly.serialization.workspaces.save(this.workspace);
               localStorage.setItem('kb_project_ws', JSON.stringify(state));
             } else {
               var xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(this.workspace));
-              this.$global.editor.blockCode = xml;
-            }
-          } catch(_) {}
+          this.$global.editor.blockCode = xml;
         }
-        if (!this.$global.editor.rawCodeMode && this.$global.editor.mode === 2 && this.codegen && typeof this.codegen.generate === 'function') {
-          let prev = reformatCode(this.codegen.generate(this.$global.editor.rawCode).sourceCode);
-          this.$global.editor.previewSourceCode = prev;
-        }
-        /*else{
-                if(e.element == 'selected'){
-                    if(e.newValue != null){ //selected block
-                        var block = this.workspace.getBlockById(e.newValue);
-                        var code = Blockly.JavaScript.blockToCode(block);
-                    }else{ //deselect block
-                        console.log("deselected block");
-                    }
+          } catch(e) {
+            console.warn('Error saving workspace:', e);
+          }
+        }, 1000); // Save after 1 second of inactivity
+      },
+      initializeBlockly() {
+        console.log('Skipping Blockly reinitialize to prevent freezing - using existing workspace');
+        // Don't reinitialize to prevent freezing
+        // The existing workspace should work fine
+        return;
+      },
+      addMissingBlocks() {
+        console.log('Adding missing sensor and actuator blocks...');
+        
+        setTimeout(() => {
+          if (window.Blockly && window.Blockly.Blocks) {
+            // Sensor blocks
+            if (!window.Blockly.Blocks['dht_read']) {
+              window.Blockly.Blocks['dht_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("DHT22 pino")
+                      .appendField(new Blockly.FieldNumber(4), "PIN");
+                  this.setOutput(true, "Number");
+                  this.setColour('#FF6B6B');
+                  this.setTooltip("Sensor DHT22");
                 }
-            }*/
+              };
+            }
+            
+            if (!window.Blockly.Blocks['ultrasonic_read']) {
+              window.Blockly.Blocks['ultrasonic_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Ultrassônico")
+                      .appendField(new Blockly.FieldNumber(5), "TRIG");
+                  this.setOutput(true, "Number");
+                  this.setColour('#FF6B6B');
+                  this.setTooltip("Sensor ultrassônico");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['ldr_read']) {
+              window.Blockly.Blocks['ldr_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Sensor luz pino")
+                      .appendField(new Blockly.FieldNumber(34), "PIN");
+                  this.setOutput(true, "Number");
+                  this.setColour('#FF6B6B');
+                  this.setTooltip("Sensor de luz");
+                }
+              };
+            }
+            
+            // Actuator blocks
+            if (!window.Blockly.Blocks['servo_write']) {
+              window.Blockly.Blocks['servo_write'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Servo pino")
+                      .appendField(new Blockly.FieldNumber(9), "PIN")
+                      .appendField("ângulo")
+                      .appendField(new Blockly.FieldNumber(90), "ANGLE");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#4ECDC4');
+                  this.setTooltip("Controlar servo");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['led_write']) {
+              window.Blockly.Blocks['led_write'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("LED pino")
+                      .appendField(new Blockly.FieldNumber(2), "PIN")
+                      .appendField(new Blockly.FieldDropdown([["ON","HIGH"], ["OFF","LOW"]]), "STATE");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#4ECDC4');
+                  this.setTooltip("Controlar LED");
+                }
+              };
+            }
+            
+            console.log('Missing blocks added successfully');
+          }
+        }, 500);
+      },
+      initializeBlocklyFromMounted() {
+        // This is the initial Blockly setup from mounted lifecycle
+        console.log('Setting up Blockly from mounted...');
+        // The existing mounted logic will handle the initialization
+      },
+      generateCodeFromBlocks() {
+        try {
+          if (this.workspace && javascriptGenerator) {
+            const rawCode = javascriptGenerator.workspaceToCode(this.workspace);
+            const cppCode = this.generateArduinoCode(rawCode);
+            this.$global.editor.sourceCode = cppCode;
+            
+            // Show success message
+            console.log('✅ Código C++ gerado a partir dos blocos');
+          }
+        } catch(e) {
+          console.error('Error generating code from blocks:', e);
+        }
+      },
+      clearWorkspace() {
+        if (confirm('Tem certeza que deseja limpar todos os blocos?')) {
+          try {
+            if (this.workspace) {
+              this.workspace.clear();
+              this.$global.editor.blockCode = '<xml xmlns="http://www.w3.org/1999/xhtml"><variables></variables></xml>';
+              this.$global.editor.rawCode = '';
+              if (this.$global.editor.mode <= 2) {
+                this.$global.editor.sourceCode = this.generateArduinoCode('');
+              }
+            }
+          } catch(e) {
+            console.error('Error clearing workspace:', e);
+          }
+        }
+      },
+      newArduinoSketch() {
+        const template = `// Novo sketch Arduino
+#include <Arduino.h>
+
+void setup() {
+  Serial.begin(115200);
+  // Configuração inicial aqui
+}
+
+void loop() {
+  // Código principal aqui
+  delay(1000);
+}`;
+        this.$global.editor.sourceCode = template;
+        localStorage.setItem('kb_manual_code', template);
+      },
+      formatCode() {
+        try {
+          if (this.$global.editor.sourceCode) {
+            let formatted = this.$global.editor.sourceCode
+              .replace(/{\s*\n\s*/g, ' {\n  ') // Opening braces
+              .replace(/;\s*\n\s*/g, ';\n  ') // Semicolons
+              .replace(/}\s*\n/g, '}\n\n') // Closing braces
+              .replace(/\n\s*\n\s*\n/g, '\n\n') // Multiple empty lines
+              .trim();
+            
+            this.$global.editor.sourceCode = formatted;
+            console.log('✅ Código formatado');
+          }
+        } catch(e) {
+          console.warn('Error formatting code:', e);
+        }
+      },
+      validateCode() {
+        try {
+          const code = this.$global.editor.sourceCode || '';
+          const errors = [];
+          
+          // Basic C++ syntax validation
+          const lines = code.split('\n');
+          lines.forEach((line, index) => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('#')) {
+              // Check for missing semicolons
+              if (!trimmed.endsWith(';') && !trimmed.endsWith('{') && !trimmed.endsWith('}')) {
+                errors.push(`Linha ${index + 1}: Possível ponto e vírgula ausente`);
+              }
+            }
+          });
+          
+          // Check for basic structure
+          if (!code.includes('void setup()')) {
+            errors.push('Função setup() não encontrada');
+          }
+          if (!code.includes('void loop()')) {
+            errors.push('Função loop() não encontrada');
+          }
+          
+          if (errors.length === 0) {
+            console.log('✅ Código válido!');
+          } else {
+            console.warn('⚠️ Problemas encontrados:', errors);
+          }
+        } catch(e) {
+          console.warn('Error validating code:', e);
+        }
+      },
+      copyCode() {
+        try {
+          if (navigator.clipboard && this.$global.editor.sourceCode) {
+            navigator.clipboard.writeText(this.$global.editor.sourceCode);
+            console.log('✅ Código copiado para área de transferência');
+          }
+        } catch(e) {
+          console.warn('Error copying code:', e);
+        }
+      },
+      compileCode() {
+        try {
+          console.log('🔨 Iniciando compilação...');
+          console.log('Código:', this.$global.editor.sourceCode);
+          // Here you would integrate with a compiler service
+          console.log('✅ Compilação simulada concluída');
+        } catch(e) {
+          console.error('Error compiling code:', e);
+        }
       },
       clearError() {
         let cm = this.getCm();
@@ -1355,6 +1754,36 @@
 
     .panel-header i {
         color: var(--kb-primary);
+    }
+
+    .panel-header__actions {
+        display: flex;
+        gap: 4px;
+        margin-left: auto;
+    }
+
+    .panel-action {
+        padding: 4px 6px;
+        background: none;
+        border: none;
+        color: var(--kb-text-muted);
+        cursor: pointer;
+        border-radius: var(--kb-radius-sm);
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }
+
+    .panel-action:hover {
+        background: var(--kb-surface-hover);
+        color: var(--kb-text-primary);
+    }
+
+    .panel-action--active {
+        background: var(--kb-primary);
+        color: white;
     }
 
     .modern-panel-resizer {
