@@ -184,9 +184,6 @@
   // remover path no web
   const xmlParser = new DOMParser();
   // === UI Management ===
-  //const Multipane = import("vue-multipane"); //() => import("vue-multipane").then(({Multipane})=> Multipane);
-  // import {Multipane,MultipaneResizer} from "vue-multipane";
-  //const MultipaneResizer = () => import("vue-multipane").then(({MultipaneResizer}) => MultipaneResizer);
   // === Blockly ===
   import * as Blockly from "blockly/core";
   import * as En from "blockly/msg/en";
@@ -199,10 +196,6 @@
   import EditorTopbar from "@/engine/components/editor/EditorTopbar.vue";
   import Multipane from "@/engine/components/common/Multipane.vue";
   import MultipaneResizer from "@/engine/components/common/MultipaneResizer.vue";
-
-  // Vue 3 stubs for removed multipane to satisfy lints and keep layout
-  const Multipane = { name: 'Multipane', render(){ const slot = this.$slots && this.$slots.default; return typeof slot === 'function' ? slot() : (slot || null); } };
-  const MultipaneResizer = { name: 'MultipaneResizer', render(){ return null } };
 
   // Web stubs: block loading/rendering and formatter
   const loadBlock = async function(boardInfo){
@@ -236,8 +229,10 @@
     const esc = (s)=> String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     return blockCategories.map(cat => {
       const blocks = Array.isArray(cat.blocks) ? cat.blocks.map(b => {
+        const type = b && b.type;
+        if (!type || !Blockly || !Blockly.Blocks || !Blockly.Blocks[type]) { return ''; }
         const extra = b.xml ? b.xml : '';
-        return `<block type="${esc(b.type)}">${extra}</block>`;
+        return `<block type="${esc(type)}">${extra}</block>`;
       }).join('') : '';
       const colour = (cat.colour != null) ? ` colour="${cat.colour}"` : '';
       return `<category name="${esc(cat.name || 'Categoria')}"${colour}>${blocks}</category>`;
