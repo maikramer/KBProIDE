@@ -1,0 +1,325 @@
+/* Modern UI Design System */
+:root {
+  /* Color Palette - Dark Theme */
+  --kb-primary: #3b82f6;
+  --kb-primary-hover: #2563eb;
+  --kb-secondary: #8b5cf6;
+  --kb-success: #10b981;
+  --kb-warning: #f59e0b;
+  --kb-error: #ef4444;
+  
+  /* Surface Colors */
+  --kb-surface: #0f172a;
+  --kb-surface-2: #1e293b;
+  --kb-surface-3: #334155;
+  --kb-surface-hover: #475569;
+  
+  /* Text Colors */
+  --kb-text-primary: #f8fafc;
+  --kb-text-secondary: #e2e8f0;
+  --kb-text-muted: #94a3b8;
+  
+  /* Border & Accent */
+  --kb-border: #334155;
+  --kb-border-light: #475569;
+  --kb-accent: #06b6d4;
+  
+  /* Shadows */
+  --kb-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --kb-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --kb-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  /* Radius */
+  --kb-radius-sm: 0.375rem;
+  --kb-radius: 0.5rem;
+  --kb-radius-lg: 0.75rem;
+  --kb-radius-xl: 1rem;
+}
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--kb-surface);
+  color: var(--kb-text-primary);
+  line-height: 1.5;
+}
+
+/* Modern Toolbar */
+.modern-toolbar {
+  background: var(--kb-surface-2);
+  border-bottom: 1px solid var(--kb-border);
+  backdrop-filter: blur(12px);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  box-shadow: var(--kb-shadow);
+}
+
+.modern-toolbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 24px;
+}
+
+.modern-toolbar__brand img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--kb-radius);
+  object-fit: contain;
+}
+
+.modern-toolbar__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--kb-text-primary);
+}
+
+.modern-toolbar__section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-toolbar__divider {
+  width: 1px;
+  height: 24px;
+  background: var(--kb-border);
+  margin: 0 12px;
+}
+
+/* Modern Buttons */
+.modern-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--kb-radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--kb-text-secondary);
+}
+
+.modern-btn:hover {
+  background: var(--kb-surface-hover);
+  color: var(--kb-text-primary);
+}
+
+.modern-btn--primary {
+  background: var(--kb-primary);
+  color: white;
+}
+
+.modern-btn--primary:hover {
+  background: var(--kb-primary-hover);
+}
+
+.modern-btn--icon {
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+}
+
+.modern-btn--active {
+  background: var(--kb-primary);
+  color: white;
+}
+
+/* Modern Panels */
+.modern-panel {
+  background: var(--kb-surface-2);
+  border: 1px solid var(--kb-border);
+  border-radius: var(--kb-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--kb-shadow);
+}
+
+.modern-panel__header {
+  padding: 12px 16px;
+  background: var(--kb-surface-3);
+  border-bottom: 1px solid var(--kb-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modern-panel__title {
+  font-weight: 600;
+  color: var(--kb-text-primary);
+}
+
+.modern-panel__content {
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Modern Tabs */
+.modern-tabs {
+  background: var(--kb-surface-2);
+  border-radius: var(--kb-radius-lg) var(--kb-radius-lg) 0 0;
+  overflow: hidden;
+}
+
+.modern-tabs__header {
+  display: flex;
+  background: var(--kb-surface-3);
+  border-bottom: 1px solid var(--kb-border);
+}
+
+.modern-tab {
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--kb-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-tab:hover {
+  color: var(--kb-text-secondary);
+  background: var(--kb-surface-hover);
+}
+
+.modern-tab--active {
+  color: var(--kb-text-primary);
+  background: var(--kb-surface-2);
+}
+
+.modern-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--kb-primary);
+}
+
+.modern-tab__close {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--kb-text-muted);
+  cursor: pointer;
+  border-radius: var(--kb-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.modern-tab__close:hover {
+  background: var(--kb-error);
+  color: white;
+}
+
+/* Layout */
+.modern-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modern-layout__content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.modern-layout__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modern-layout__sidebar {
+  width: 300px;
+  background: var(--kb-surface-2);
+  border-right: 1px solid var(--kb-border);
+  overflow: hidden;
+}
+
+.modern-layout__bottom {
+  height: 200px;
+  background: var(--kb-surface-2);
+  border-top: 1px solid var(--kb-border);
+  overflow: hidden;
+}
+
+/* Resizer */
+.modern-resizer {
+  background: var(--kb-border);
+  transition: background 0.2s ease;
+}
+
+.modern-resizer:hover {
+  background: var(--kb-primary);
+}
+
+.modern-resizer--horizontal {
+  height: 2px;
+  cursor: row-resize;
+}
+
+.modern-resizer--vertical {
+  width: 2px;
+  cursor: col-resize;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--kb-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--kb-border);
+  border-radius: var(--kb-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--kb-border-light);
+}
+
+/* Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modern-toolbar {
+    padding: 0 12px;
+  }
+  
+  .modern-layout__sidebar {
+    width: 250px;
+  }
+  
+  .modern-layout__bottom {
+    height: 150px;
+  }
+}

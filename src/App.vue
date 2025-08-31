@@ -1,26 +1,153 @@
 <template>
     <div id="appRoot">
         <template v-if="!$route.meta.public">
-            <v-app class="app bg-[var(--kb-surface)] text-gray-200 min-h-screen" id="inspire">
-                <app-toolbar ref="toolbar" class="app--toolbar" v-on:created="createToolbar"></app-toolbar>
+            <div class="modern-layout">
+                <!-- Modern Toolbar -->
+                <ModernToolbar />
                 
-                <v-content>
-                    <router-view></router-view>
-                </v-content>
+                <!-- Main Content Area -->
+                <div class="modern-layout__content">
+                    <multipane 
+                        v-if="$global.ui.bottomTab.length > 0"
+                        class="main-vertical-layout"
+                        layout="horizontal"
+                        @paneResizeStop="onMainPaneResize"
+                    >
+                        <!-- Upper area (main content + right sidebar) -->
+                        <div class="upper-area" :style="{ height: mainAreaHeight + 'px', minHeight: '400px' }">
+                            <multipane 
+                                v-if="$global.ui.rightTab.length > 0"
+                                class="main-horizontal-layout"
+                                layout="vertical"
+                                @paneResizeStop="onHorizontalPaneResize"
+                            >
+                                <!-- Primary Content -->
+                                <div class="primary-content" :style="{ width: primaryContentWidth + 'px', minWidth: '300px' }">
+                                    <router-view></router-view>
+                                </div>
+                                
+                                <!-- Horizontal Resizer -->
+                                <multipane-resizer class="modern-panel-resizer"></multipane-resizer>
+                                
+                                <!-- Right Sidebar -->
+                                <div class="right-sidebar" style="flex: 1; min-width: 250px;">
+                                    <div class="panel-header">
+                                        <i class="fa fa-window-restore"></i>
+                                        <span>Painel Lateral</span>
+                                    </div>
+                                    <ModernTabs
+                                        :tabs="rightTabs"
+                                        v-model="rightTabIndex"
+                                        @tab-close="closeRightTab"
+                                    />
+                                </div>
+                            </multipane>
+                            
+                            <!-- Full width when no right tabs -->
+                            <router-view v-else></router-view>
+                        </div>
+                        
+                        <!-- Vertical Resizer -->
+                        <multipane-resizer class="modern-panel-resizer modern-panel-resizer--horizontal"></multipane-resizer>
+                        
+                        <!-- Bottom Panel -->
+                        <div class="bottom-panel" :style="{ height: bottomPanelHeight + 'px', minHeight: '150px', maxHeight: '400px' }">
+                            <div class="panel-header">
+                                <i class="fa fa-window-maximize"></i>
+                                <span>Painel Inferior</span>
+                                <div class="panel-header__actions">
+                                    <button 
+                                        class="panel-action" 
+                                        @click="minimizeBottomPanel"
+                                        title="Minimizar"
+                                    >
+                                        <i class="fa fa-window-minimize"></i>
+                                    </button>
+                                    <button 
+                                        class="panel-action" 
+                                        @click="closeBottomPanel"
+                                        title="Fechar"
+                                    >
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <ModernTabs
+                                :tabs="bottomTabs"
+                                v-model="bottomTabIndex"
+                                @tab-close="closeBottomTab"
+                            />
+                        </div>
+                    </multipane>
+                    
+                    <!-- No bottom panel layout -->
+                    <div v-else class="full-height-layout">
+                        <multipane 
+                            v-if="$global.ui.rightTab.length > 0"
+                            class="main-horizontal-layout"
+                            layout="vertical"
+                            @paneResizeStop="onHorizontalPaneResize"
+                        >
+                            <!-- Primary Content -->
+                            <div class="primary-content" :style="{ width: primaryContentWidth + 'px', minWidth: '300px' }">
+                                <router-view></router-view>
+                            </div>
+                            
+                            <!-- Horizontal Resizer -->
+                            <multipane-resizer class="modern-panel-resizer"></multipane-resizer>
+                            
+                            <!-- Right Sidebar -->
+                            <div class="right-sidebar" style="flex: 1; min-width: 250px;">
+                                <div class="panel-header">
+                                    <i class="fa fa-window-restore"></i>
+                                    <span>Painel Lateral</span>
+                                </div>
+                                <ModernTabs
+                                    :tabs="rightTabs"
+                                    v-model="rightTabIndex"
+                                    @tab-close="closeRightTab"
+                                />
+                            </div>
+                        </multipane>
+                        
+                        <!-- Full width when no right tabs -->
+                        <router-view v-else></router-view>
+                    </div>
+                </div>
 
-                <!-- left drawer -->
-                <v-navigation-drawer class="setting-drawer rounded-xl ring-1 ring-white/10 bg-[var(--kb-surface-2)] backdrop-blur" fixed hide-overlay left temporary
-                                     v-model="$global.ui.leftDrawerComponent">
-                    <async-component v-if="$global.ui.leftDrawerComponent" :target="$global.ui.leftDrawerComponent"/>
-                </v-navigation-drawer>
-                <!-- right drawer -->
-                <v-navigation-drawer class="setting-drawer rounded-xl ring-1 ring-white/10 bg-[var(--kb-surface-2)] backdrop-blur" fixed hide-overlay right temporary
-                                     v-model="$global.ui.rightDrawerComponent">
-                    <async-component v-if="$global.ui.rightDrawerComponent" :target="$global.ui.rightDrawerComponent"/>
-                </v-navigation-drawer>
-
-                <app-footer></app-footer>
-            </v-app>
+                <!-- Modern Drawers -->
+                <div 
+                    v-if="$global.ui.leftDrawerComponent" 
+                    class="modern-drawer modern-drawer--left"
+                    @click.self="$global.ui.leftDrawerComponent = null"
+                >
+                    <div class="modern-drawer__content">
+                        <ModernPanel 
+                            title="Menu" 
+                            :closable="true"
+                            @close="$global.ui.leftDrawerComponent = null"
+                        >
+                            <async-component :target="$global.ui.leftDrawerComponent"/>
+                        </ModernPanel>
+                    </div>
+                </div>
+                
+                <div 
+                    v-if="$global.ui.rightDrawerComponent" 
+                    class="modern-drawer modern-drawer--right"
+                    @click.self="$global.ui.rightDrawerComponent = null"
+                >
+                    <div class="modern-drawer__content">
+                        <ModernPanel 
+                            title="Configurações" 
+                            :closable="true"
+                            @close="$global.ui.rightDrawerComponent = null"
+                        >
+                            <async-component :target="$global.ui.rightDrawerComponent"/>
+                        </ModernPanel>
+                    </div>
+                </div>
+            </div>
         </template>
         <template v-else>
             <transition name="fade">
@@ -120,7 +247,11 @@
       AsyncComponent : defineAsyncComponent(() => import("@/engine/AsyncComponent")),
       AppFooter : ()=> import("@/engine/views/AppFooter"),
       AppUpdater,
-      // Modern Components removed - using original components
+      // Modern Components
+      ModernToolbar: defineAsyncComponent(() => import("@/engine/components/modern/ModernToolbar")),
+      ModernTabs: defineAsyncComponent(() => import("@/engine/components/modern/ModernTabs")),
+      ModernPanel: defineAsyncComponent(() => import("@/engine/components/modern/ModernPanel")),
+      ModernPanelLayout: defineAsyncComponent(() => import("@/engine/components/modern/ModernPanelLayout"))
       //AppUpdater : () => import("@/engine/updater/AppUpdater")
     },
     data() {
@@ -668,7 +799,9 @@
     }
 </style>
 <style>
-    /* Modern UI styles integrated directly */
+    @import '@/engine/styles/app-toolbar.css';
+    @import '@/engine/styles/modern-ui.css';
+    @import '@/engine/styles/modern-blockly.css';
     
     /* Modern Layout Styles */
     .modern-layout__primary {

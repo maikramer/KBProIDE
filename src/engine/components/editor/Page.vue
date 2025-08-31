@@ -1,6 +1,6 @@
 <template>
   <div class="modern-editor-page">
-      <EditorTopbar
+      <ModernEditorToolbar
         :mode="$global.editor.mode"
         @new-file="$global.$emit('file-new')"
         @open-file="$global.$emit('file-open')"
@@ -38,38 +38,16 @@
               <div class="panel-header">
                 <i class="fa fa-code"></i>
                 <span>Editor de Código</span>
-                <div class="panel-header__actions">
-                  <button 
-                    class="panel-action" 
-                    @click="formatCode"
-                    title="Formatar Código"
-                  >
-                    <i class="fa fa-indent"></i>
-                  </button>
-                  <button 
-                    class="panel-action" 
-                    @click="toggleReadOnly"
-                    :class="{ 'panel-action--active': isCodeReadOnly }"
-                    title="Somente Leitura"
-                  >
-                    <i class="fa fa-lock"></i>
-                  </button>
-                  <button 
-                    class="panel-action" 
-                    @click="copyCode"
-                    title="Copiar Código"
-                  >
-                    <i class="fa fa-copy"></i>
-                  </button>
-                </div>
               </div>
               <div class="modern-code-editor-container">
-                <textarea
+                <MonacoEditor
+                  ref="monacoEditor"
                   v-model="$global.editor.sourceCode"
-                  class="code-textarea"
-                  placeholder="Seu código C++ aparecerá aqui..."
-                  @input="onCodeChange"
-                ></textarea>
+                  language="cpp"
+                  theme="vs-dark"
+                  :options="monacoOptions"
+                  @change="onCodeChange"
+                />
               </div>
             </div>
           </multipane>
@@ -79,54 +57,16 @@
             <div class="panel-header">
               <i class="fa fa-code"></i>
               <span>Editor de Código</span>
-              <div class="code-status">
-                <span class="code-lines">{{ codeLineCount }} linhas</span>
-              </div>
-              <div class="panel-header__actions">
-                <button 
-                  class="panel-action" 
-                  @click="newSketch"
-                  title="Novo Sketch"
-                >
-                  <i class="fa fa-file-o"></i>
-                </button>
-                <button 
-                  class="panel-action" 
-                  @click="formatCode"
-                  title="Formatar Código"
-                >
-                  <i class="fa fa-indent"></i>
-                </button>
-                <button 
-                  class="panel-action" 
-                  @click="validateCode"
-                  title="Validar Sintaxe"
-                >
-                  <i class="fa fa-check"></i>
-                </button>
-                <button 
-                  class="panel-action" 
-                  @click="copyCode"
-                  title="Copiar Código"
-                >
-                  <i class="fa fa-copy"></i>
-                </button>
-                <button 
-                  class="panel-action" 
-                  @click="toggleFullscreen"
-                  title="Tela Cheia"
-                >
-                  <i class="fa fa-expand"></i>
-                </button>
-              </div>
             </div>
             <div class="modern-code-editor-container">
-              <textarea
+              <MonacoEditor
+                ref="monacoEditor"
                 v-model="$global.editor.sourceCode"
-                class="code-textarea"
-                placeholder="Digite seu código C++ aqui..."
-                @input="onCodeChange"
-              ></textarea>
+                language="cpp"
+                theme="vs-dark"
+                :options="monacoOptions"
+                @change="onCodeChange"
+              />
             </div>
           </div>
         </div>
@@ -182,6 +122,12 @@
   // === uitls ===
   import util from "@/engine/utils";
   import EditorTopbar from "@/engine/components/editor/EditorTopbar.vue";
+  import ModernEditorToolbar from "@/engine/components/modern/ModernEditorToolbar.vue";
+  import ModernBlocklyToolbox from "@/engine/components/modern/ModernBlocklyToolbox.vue";
+  import ModernPanelLayout from "@/engine/components/modern/ModernPanelLayout.vue";
+  import ModernResizablePanel from "@/engine/components/modern/ModernResizablePanel.vue";
+  import { createTheme } from "@/engine/blockly/theme";
+  import { buildToolboxXml, filterToolboxByQuery } from "@/engine/blockly/toolbox";
   import { defineAsyncComponent } from 'vue';
   import Multipane from "@/engine/components/common/Multipane.vue";
   import MultipaneResizer from "@/engine/components/common/MultipaneResizer.vue";
@@ -258,96 +204,19 @@
           }
         };
       }
-      // Register ESP32 blocks and code generators
-      if (window.Blockly && window.Blockly.Blocks && javascriptGenerator) {
-        // GPIO Set Mode Block
-        if (!window.Blockly.Blocks['gpio_set_mode']) {
-          window.Blockly.Blocks['gpio_set_mode'] = {
-            init: function() {
-              this.appendDummyInput()
-                  .appendField("configurar pino")
-                  .appendField(new Blockly.FieldNumber(13, 0, 39), "PIN")
-                  .appendField("como")
-                  .appendField(new Blockly.FieldDropdown([["saída","OUTPUT"], ["entrada","INPUT"], ["entrada pull-up","INPUT_PULLUP"]]), "MODE");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour('#A65C81');
-              this.setTooltip("Configura um pino GPIO como entrada ou saída");
-              this.setHelpUrl("");
-            }
-          };
-          
-          javascriptGenerator.forBlock['gpio_set_mode'] = function(block) {
-            const pin = block.getFieldValue('PIN');
-            const mode = block.getFieldValue('MODE');
-            return `pinMode(${pin}, ${mode});\n`;
+      if (javascriptGenerator && javascriptGenerator.forBlock) {
+        if (!javascriptGenerator.forBlock["gpio_set_mode"]) {
+          javascriptGenerator.forBlock["gpio_set_mode"] = function(block){
+            const pin = javascriptGenerator.valueToCode(block, "PIN", javascriptGenerator.ORDER_NONE) || "0";
+            const mode = block.getFieldValue("MODE") || "OUTPUT";
+            return `// gpio_set_mode(${pin}, ${mode})\n`;
           };
         }
-        
-        // GPIO Digital Write Block
-        if (!window.Blockly.Blocks['gpio_digital_write']) {
-          window.Blockly.Blocks['gpio_digital_write'] = {
-            init: function() {
-              this.appendDummyInput()
-                  .appendField("escrever no pino")
-                  .appendField(new Blockly.FieldNumber(13, 0, 39), "PIN")
-                  .appendField("valor")
-                  .appendField(new Blockly.FieldDropdown([["HIGH","HIGH"], ["LOW","LOW"]]), "VALUE");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour('#A65C81');
-              this.setTooltip("Escreve um valor digital (HIGH/LOW) em um pino");
-              this.setHelpUrl("");
-            }
-          };
-          
-          javascriptGenerator.forBlock['gpio_digital_write'] = function(block) {
-            const pin = block.getFieldValue('PIN');
-            const value = block.getFieldValue('VALUE');
-            return `digitalWrite(${pin}, ${value});\n`;
-          };
-        }
-        
-        // Delay Block
-        if (!window.Blockly.Blocks['delay']) {
-          window.Blockly.Blocks['delay'] = {
-            init: function() {
-              this.appendDummyInput()
-                  .appendField("esperar")
-                  .appendField(new Blockly.FieldNumber(1000, 0), "TIME")
-                  .appendField("milissegundos");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour('#A65C81');
-              this.setTooltip("Pausa a execução por um tempo especificado");
-              this.setHelpUrl("");
-            }
-          };
-          
-          javascriptGenerator.forBlock['delay'] = function(block) {
-            const time = block.getFieldValue('TIME');
-            return `delay(${time});\n`;
-          };
-        }
-        
-        // Serial Print Block
-        if (!window.Blockly.Blocks['serial_print']) {
-          window.Blockly.Blocks['serial_print'] = {
-            init: function() {
-              this.appendValueInput("TEXT")
-                  .setCheck(null)
-                  .appendField("imprimir no serial");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour('#A65C81');
-              this.setTooltip("Envia texto para o monitor serial");
-              this.setHelpUrl("");
-            }
-          };
-          
-          javascriptGenerator.forBlock['serial_print'] = function(block) {
-            const text = javascriptGenerator.valueToCode(block, 'TEXT', javascriptGenerator.ORDER_ATOMIC) || '""';
-            return `Serial.println(${text});\n`;
+        if (!javascriptGenerator.forBlock["gpio_digital_write"]) {
+          javascriptGenerator.forBlock["gpio_digital_write"] = function(block){
+            const pin = javascriptGenerator.valueToCode(block, "PIN", javascriptGenerator.ORDER_NONE) || "0";
+            const val = javascriptGenerator.valueToCode(block, "VAL", javascriptGenerator.ORDER_NONE) || "false";
+            return `// gpio_digital_write(${pin}, ${val})\n`;
           };
         }
       }
@@ -367,7 +236,7 @@
 
   let fs = null; try { if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
   // === engine ===
-  // import plug from "@/engine/PluginManager"; // Removed - file deleted
+  import plug from "@/engine/PluginManager";
   // === dialog ===
   //import VariableNamingDialog from "@/engine/views/dialog/VariableNamingDialog";
   //import PianoDialog from "@/engine/views/dialog/PianoDialog";
@@ -395,8 +264,13 @@
   export default {
     components: { 
       EditorTopbar, 
+      ModernEditorToolbar,
+      ModernBlocklyToolbox,
+      ModernPanelLayout,
+      ModernResizablePanel,
       Multipane, 
-      MultipaneResizer
+      MultipaneResizer,
+      MonacoEditor: defineAsyncComponent(() => import('@/engine/components/common/MonacoEditor.vue'))
     },
     name: "PageEditor",
     data() {
@@ -522,19 +396,7 @@
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           wordWrap: 'on',
-          theme: 'vs-dark',
-          lineNumbers: 'on',
-          folding: true,
-          renderLineHighlight: 'all',
-          selectOnLineNumbers: true,
-          roundedSelection: false,
-          readOnly: false, // Allow editing in mixed mode
-          cursorStyle: 'line',
-          suggestOnTriggerCharacters: true,
-          quickSuggestions: true,
-          parameterHints: { enabled: true },
-          formatOnPaste: true,
-          formatOnType: true
+          theme: 'vs-dark'
         },
         variableDialog: false, // Keep closed
         variable_name: this.name,
@@ -598,7 +460,6 @@
           }
         ],
         blocklyPanelWidth: 500, // Default width for blockly panel in split mode
-        isCodeReadOnly: false, // Code editor read-only state
         lightThemeArray: ["red", "purple", "indigo", "pink"],
         darkThemeArray: ["blue", "lightBlue", "teal", "orange", "cyan", "green"]
       };
@@ -637,16 +498,6 @@
         }
         
         return panels;
-      },
-      currentMonacoOptions() {
-        return {
-          ...this.monacoOptions,
-          readOnly: this.isCodeReadOnly || (this.$global.editor.mode === 1) // Read-only in blocks-only mode
-        };
-      },
-      codeLineCount() {
-        const code = this.$global?.editor?.sourceCode || '';
-        return code.split('\n').length;
       }
     },
     created() {
@@ -1008,18 +859,9 @@
       onCodeChange() {
         if (this.$global.editor.mode >= 2) {
           try {
-            // In mixed mode, sync code changes back to blocks if possible
-            if (this.$global.editor.mode === 2) {
-              this.syncCodeToBlocks();
-            }
             this.updatecode();
           } catch(e) {}
         }
-      },
-      syncCodeToBlocks() {
-        // This is a complex feature - for now just update the raw code
-        // In a full implementation, you'd parse C++ back to blocks
-        console.log('Code changed in mixed mode');
       },
       onPanelResize({ index, size, direction }) {
         console.log(`Panel ${index} resized to ${size}px (${direction})`);
@@ -1275,7 +1117,7 @@
       onBoardChange: async function(boardInfo, first_init = false) {
         //reload plugin
         console.log("board changed resender toolbox");
-        // this.$global.plugin.pluginInfo = plug.loadPlugin(this.$global.board.board_info); // Removed - PluginManager deleted
+        this.$global.plugin.pluginInfo = plug.loadPlugin(this.$global.board.board_info);
         try {
           if (typeof window !== 'undefined' && window.initBlockly && typeof window.initBlockly === 'function') {
             window.initBlockly(boardInfo);
@@ -1287,8 +1129,9 @@
           const data = { categories: [] };
           if ("blocks" in blocks) { data.categories = data.categories.concat(blocks.blocks); }
           if ("base_blocks" in blocks) { data.categories = data.categories.concat(blocks.base_blocks); }
-          // Use simple block rendering since helper functions were removed
-          stringBlock = renderBlock(data.categories);
+          this.toolboxData = data;
+          const filtered = filterToolboxByQuery(data, this.toolboxSearch || "");
+          stringBlock = buildToolboxXml(filtered).replace(/^<xml[^>]*>|<\/xml>$/g, '');
         } catch(e) {}
         // render plugin blocks
         stringBlock += loadAndRenderPluginsBlock(
@@ -1341,213 +1184,33 @@
       updatecode(e) {
         // real time reformat mode
         if (!this.workspace || !javascriptGenerator) { return; }
-        if (e && e.type === Blockly.Events.UI) { return; }
-        
-        try {
-          // Generate JavaScript/C++ code from blocks
-          const rawCode = javascriptGenerator.workspaceToCode(this.workspace);
-          this.$global.editor.rawCode = rawCode;
-          
-          // Convert to Arduino/C++ code
-          const cppCode = this.convertToCpp(rawCode);
-          
-          // Only update sourceCode if we're in mode 1 or 2 (not pure code mode)
-          if (this.$global.editor.mode <= 2) {
-            this.$global.editor.sourceCode = cppCode;
-          }
-          
-          // Save workspace state
-          if (Blockly.serialization && Blockly.serialization.workspaces && typeof Blockly.serialization.workspaces.save === 'function') {
-            const state = Blockly.serialization.workspaces.save(this.workspace);
-            localStorage.setItem('kb_project_ws', JSON.stringify(state));
-          } else {
-            var xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(this.workspace));
-            this.$global.editor.blockCode = xml;
-          }
-        } catch(error) {
-          console.warn('Error updating code:', error);
+        if (e.type != Blockly.Events.UI) {
+          this.$global.editor.rawCode = javascriptGenerator.workspaceToCode(this.workspace);
+          try {
+            if (Blockly.serialization && Blockly.serialization.workspaces && typeof Blockly.serialization.workspaces.save === 'function') {
+              const state = Blockly.serialization.workspaces.save(this.workspace);
+              localStorage.setItem('kb_project_ws', JSON.stringify(state));
+            } else {
+              var xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(this.workspace));
+              this.$global.editor.blockCode = xml;
+            }
+          } catch(_) {}
         }
-      },
-      convertToCpp(jsCode) {
-        // Convert JavaScript-like code to Arduino C++
-        if (!jsCode || jsCode.trim() === '') {
-          return `// Código gerado automaticamente do Blockly
-#include <Arduino.h>
-
-void setup() {
-  Serial.begin(115200);
-  // Inicialização aqui
-}
-
-void loop() {
-  // Código principal aqui
-  delay(1000);
-}`;
+        if (!this.$global.editor.rawCodeMode && this.$global.editor.mode === 2 && this.codegen && typeof this.codegen.generate === 'function') {
+          let prev = reformatCode(this.codegen.generate(this.$global.editor.rawCode).sourceCode);
+          this.$global.editor.previewSourceCode = prev;
         }
-        
-        let cppCode = `// Código gerado automaticamente do Blockly
-#include <Arduino.h>
-
-void setup() {
-  Serial.begin(115200);
-  // Inicialização
-`;
-        
-        // Process the generated code
-        const lines = jsCode.split('\n');
-        let loopCode = '';
-        let setupCode = '';
-        
-        lines.forEach(line => {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('//')) {
-            // Convert comments
-            loopCode += `  ${trimmed}\n`;
-          } else if (trimmed.includes('gpio_set_mode')) {
-            // Convert GPIO setup calls to setup section
-            const match = trimmed.match(/gpio_set_mode\((\d+),\s*(\w+)\)/);
-            if (match) {
-              setupCode += `  pinMode(${match[1]}, ${match[2]});\n`;
-            }
-          } else if (trimmed.includes('gpio_digital_write')) {
-            // Convert digital write calls
-            const match = trimmed.match(/gpio_digital_write\((\d+),\s*(\w+)\)/);
-            if (match) {
-              loopCode += `  digitalWrite(${match[1]}, ${match[2]});\n`;
-            }
-          } else if (trimmed.includes('delay')) {
-            // Convert delay calls
-            const match = trimmed.match(/delay\((\d+)\)/);
-            if (match) {
-              loopCode += `  delay(${match[1]});\n`;
-            }
-          } else if (trimmed && !trimmed.startsWith('var ')) {
-            // Add other non-variable declarations to loop
-            loopCode += `  ${trimmed}\n`;
-          }
-        });
-        
-        cppCode += setupCode;
-        cppCode += `}\n\nvoid loop() {\n`;
-        cppCode += loopCode || '  // Seu código aqui\n  delay(1000);\n';
-        cppCode += `}\n`;
-        
-        return cppCode;
+        /*else{
+                if(e.element == 'selected'){
+                    if(e.newValue != null){ //selected block
+                        var block = this.workspace.getBlockById(e.newValue);
+                        var code = Blockly.JavaScript.blockToCode(block);
+                    }else{ //deselect block
+                        console.log("deselected block");
+                    }
+                }
+            }*/
       },
-      formatCode() {
-        try {
-          // Simple C++ code formatting
-          if (this.$global.editor.sourceCode) {
-            let formatted = this.$global.editor.sourceCode
-              .replace(/{\s*\n\s*/g, ' {\n  ') // Opening braces
-              .replace(/;\s*\n\s*/g, ';\n  ') // Semicolons
-              .replace(/}\s*\n/g, '}\n\n') // Closing braces
-              .replace(/\n\s*\n\s*\n/g, '\n\n') // Multiple empty lines
-              .trim();
-            
-            this.$global.editor.sourceCode = formatted;
-          }
-        } catch(e) {
-          console.warn('Error formatting code:', e);
-        }
-      },
-      toggleReadOnly() {
-        this.isCodeReadOnly = !this.isCodeReadOnly;
-      },
-      copyCode() {
-        try {
-          if (navigator.clipboard && this.$global.editor.sourceCode) {
-            navigator.clipboard.writeText(this.$global.editor.sourceCode);
-            // Show success message
-            if (this.$global.ui && this.$global.ui.snackbar) {
-              this.$global.ui.snackbar('Código copiado para área de transferência', 'success');
-            }
-          }
-        } catch(e) {
-          console.warn('Error copying code:', e);
-        }
-      },
-      newSketch() {
-        const template = `// Novo sketch Arduino
-#include <Arduino.h>
-
-void setup() {
-  Serial.begin(115200);
-  // Configuração inicial aqui
-}
-
-void loop() {
-  // Código principal aqui
-  delay(1000);
-}`;
-        this.$global.editor.sourceCode = template;
-      },
-      validateCode() {
-        try {
-          const code = this.$global.editor.sourceCode || '';
-          const errors = [];
-          
-          // Basic C++ syntax validation
-          const lines = code.split('\n');
-          lines.forEach((line, index) => {
-            const trimmed = line.trim();
-            if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('#')) {
-              // Check for missing semicolons
-              if (!trimmed.endsWith(';') && !trimmed.endsWith('{') && !trimmed.endsWith('}')) {
-                errors.push(`Linha ${index + 1}: Possível ponto e vírgula ausente`);
-              }
-            }
-          });
-          
-          // Check for basic structure
-          if (!code.includes('void setup()')) {
-            errors.push('Função setup() não encontrada');
-          }
-          if (!code.includes('void loop()')) {
-            errors.push('Função loop() não encontrada');
-          }
-          
-          if (errors.length === 0) {
-            if (this.$global.ui && this.$global.ui.snackbar) {
-              this.$global.ui.snackbar('✅ Código válido!', 'success');
-            }
-          } else {
-            console.warn('Validation errors:', errors);
-            if (this.$global.ui && this.$global.ui.snackbar) {
-              this.$global.ui.snackbar(`⚠️ ${errors.length} problema(s) encontrado(s)`, 'warning');
-            }
-          }
-        } catch(e) {
-          console.warn('Error validating code:', e);
-        }
-      },
-      toggleFullscreen() {
-        try {
-          if (document.fullscreenElement) {
-            document.exitFullscreen();
-          } else {
-            const editor = document.querySelector('.modern-code-editor-container');
-            if (editor && editor.requestFullscreen) {
-              editor.requestFullscreen();
-            }
-          }
-        } catch(e) {
-          console.warn('Error toggling fullscreen:', e);
-        }
-      },
-      // Block selection handler (commented out for now)
-      /*
-      handleBlockSelection(e) {
-        if(e.element == 'selected'){
-          if(e.newValue != null){ //selected block
-            var block = this.workspace.getBlockById(e.newValue);
-            var code = Blockly.JavaScript.blockToCode(block);
-          }else{ //deselect block
-            console.log("deselected block");
-          }
-        }
-      },
-      */
       clearError() {
         let cm = this.getCm();
         monaco.editor.setModelMarkers(this.getCm().getModel(), "error", []);
@@ -1648,26 +1311,6 @@ void loop() {
         background: var(--kb-surface);
     }
 
-    .code-textarea {
-        width: 100%;
-        height: 100%;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border: none;
-        outline: none;
-        resize: none;
-        font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-        font-size: 14px;
-        line-height: 1.5;
-        padding: 16px;
-        tab-size: 2;
-        -moz-tab-size: 2;
-    }
-
-    .code-textarea::placeholder {
-        color: #666;
-    }
-
     /* Editor Mode Layouts */
     .editor-mode-single {
         width: 100%;
@@ -1712,48 +1355,6 @@ void loop() {
 
     .panel-header i {
         color: var(--kb-primary);
-    }
-
-    .code-status {
-        margin-left: auto;
-        margin-right: 12px;
-    }
-
-    .code-lines {
-        font-size: 0.75rem;
-        color: var(--kb-text-muted);
-        background: var(--kb-surface);
-        padding: 2px 6px;
-        border-radius: var(--kb-radius-sm);
-    }
-
-    .panel-header__actions {
-        display: flex;
-        gap: 4px;
-    }
-
-    .panel-action {
-        padding: 4px 6px;
-        background: none;
-        border: none;
-        color: var(--kb-text-muted);
-        cursor: pointer;
-        border-radius: var(--kb-radius-sm);
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-    }
-
-    .panel-action:hover {
-        background: var(--kb-surface-hover);
-        color: var(--kb-text-primary);
-    }
-
-    .panel-action--active {
-        background: var(--kb-primary);
-        color: white;
     }
 
     .modern-panel-resizer {
