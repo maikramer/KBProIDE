@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+## Estrutura do Projeto KBProIDE (Vue 3 + Web-only)
+
+- **Ponto de entrada SPA**: [src/main.ts](mdc:src/main.ts) monta `App.vue`, registra `router` e `store` e expõe `$global` e `$engine`.
+- **Sem processo Electron**: [src/background.js](mdc:src/background.js) exporta `null` (build web-only). `vue.config.js` define `target: web` e mapeia `electron` para um stub.
+- **Roteamento**: [src/router/index.ts](mdc:src/router/index.ts) usa `vue-router@4`, `createWebHashHistory('/')` e integra `NProgress`.
+- **Estado**: [src/store.ts](mdc:src/store.ts) usa `vuex@4`. O estado atual contém `rawCode` e mutações/ações relacionadas.
+- **Engine**: Módulos em [src/engine](mdc:src/engine) (e.g., `ComponentManager`, `BoardManager`, `PlatformManager`, `UIManager`, `PluginManager`, `Compiler`, `utils`) são agregados e expostos via `$engine` em `main.ts`.
+- **Tema/Estilos**: Tailwind habilitado via [postcss.config.js](mdc:postcss.config.js) e importado em [src/main.ts](mdc:src/main.ts). Vuetify compat ativado através de [src/engine/plugins/vuetify.js](mdc:src/engine/plugins/vuetify.js).
+- **Compat Layer Vue 2 → 3**: [vue.config.js](mdc:vue.config.js) alias `vue` para `@vue/compat`.
+- **Build/CLI**: [package.json](mdc:package.json) usa `@vue/cli-service@5` com scripts `serve`, `build`, `test:unit`.
+
+### Convenções de caminho e aliases
+- **Alias `@/` → `src/`** conforme `jest.config.js` e configuração do projeto.
+- Arquivos `.vue` estão em `src/engine/components` e `src/engine/views`.
+
+### Diretórios externos importantes
+- `boards/`, `platforms/`, `packages/`, `plugins/` são dados/recursos consumidos pela aplicação (não são código Vue/TS principal).
+
+### Regras de orientação
+- Use `createApp` e APIs de composição quando possível; mantenha compatibilidade via `@vue/compat`.
+- Evite usar APIs Node no browser; se necessário, proteja com guard `isElectron` como em `main.ts`.

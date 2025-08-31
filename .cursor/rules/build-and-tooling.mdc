@@ -1,0 +1,15 @@
+---
+description: Regras de build (Vue CLI 5), webpack e Tailwind
+globs: *
+---
+## Build, Webpack e Tailwind
+
+- **CLI**: Usar `vue-cli-service` scripts de [package.json](mdc:package.json): `serve`, `build`, `test:unit`.
+- **Target web**: [vue.config.js](mdc:vue.config.js) define `target: "web"`, desativa `fs`, `path`, etc. via `resolve.fallback` e alias `electron` para stub.
+- **Tailwind/PostCSS**: [postcss.config.js](mdc:postcss.config.js) com `tailwindcss` e `autoprefixer`; CSS importado em [src/main.ts](mdc:src/main.ts).
+- **Compat Vue**: alias `vue: @vue/compat`. Atente a warnings de compat ao buildar; ajustar flags conforme necessidade.
+- **Análise de bundle**: `webpack-bundle-analyzer` disponível; rodar manualmente se necessário.
+
+### Padrões de performance
+- Evite dependências Node no client. Use guardas e imports dinâmicos somente quando indispensável.
+- Mantenha `NProgress` ativo nas rotas.

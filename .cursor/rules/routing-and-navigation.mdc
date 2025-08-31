@@ -1,0 +1,14 @@
+---
+globs: src/router/**
+---
+## Roteamento e Navegação
+
+- **Configuração**: [src/router/index.ts](mdc:src/router/index.ts) cria `router` com `createWebHashHistory('/')` e `linkActiveClass: 'active'`.
+- **Rotas**: Mantidas em [src/router/paths.js](mdc:src/router/paths.js). Adicione novas rotas lá e garanta tipos compatíveis ao exportar.
+- **Progress bar**: `NProgress` habilitado em `beforeEach`/`afterEach`. Não bloquear `next()`.
+- **Carregamento**: `afterEach` tenta esconder `.loading`. Preserve seletor para UX consistente.
+
+### Boas práticas
+- Use `name` único por rota.
+- Prefira `props: true` ao passar params para componentes.
+- Evite rotas que dependam de APIs Node.
