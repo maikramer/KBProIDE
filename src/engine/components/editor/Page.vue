@@ -29,7 +29,7 @@
                     color="onThemeChange"
             ></div>
             <xml id="toolbox" ref="toolbox" style="display: none">
-                <category name="Basic" colour="160" icon="/static/icons/SVG/c1.svg">
+                <category name="Básico" colour="160" icon="/static/icons/SVG/c1.svg">
                     <block type="basic_led16x8"></block>
                 </category>
             </xml>
@@ -44,7 +44,7 @@
                             <v-flex xs12>
                                 <v-text-field
                                         v-model="variable_name"
-                                        label="Variable name"
+                                        label="Nome da variável"
                                         required
                                         clearable
                                         counter
@@ -56,7 +56,7 @@
                     </v-card-text>
                     <v-card-actions>
                         <v-spacer></v-spacer>
-                        <v-btn color="blue darken-1" flat @click="variableDialog = false">Close</v-btn>
+                        <v-btn color="blue darken-1" flat @click="variableDialog = false">Fechar</v-btn>
                         <v-btn
                                 color="blue darken-1"
                                 flat
@@ -64,7 +64,7 @@
                                 ref="variableOK"
                                 @click="variableDialog = false"
                         >
-                            Save
+                            Salvar
                         </v-btn>
                     </v-card-actions>
                 </v-card>
@@ -75,7 +75,7 @@
                     <v-card-title>
                         <!--                        <span class="headline">{{variableMessage}}</span>-->
                         <span class="headline font-bold">
-                            Getting Image from the camera.
+                            Capturando imagem da câmera.
                         </span>
                     </v-card-title>
                     <v-card-text style="padding-top: 0">
@@ -103,7 +103,7 @@
                                             @click="snapCameraDialog"
                                     >
                                         <i class="fa fa-camera"></i>&ensp;
-                                        Snapshot
+                                        Capturar
                                     </v-btn>
                                     <v-btn
                                             id="snap"
@@ -111,13 +111,13 @@
                                             @click="refreshCameraDialog"
                                     >
                                         <i class="fa fa-refresh"></i>&ensp;
-                                        Refresh
+                                        Atualizar
                                     </v-btn>
                                     <v-btn class="btn-success" flat @click="saveCameraDialog">
-                                        Save
+                                        Salvar
                                     </v-btn>
                                     <v-btn class="btn-danger" flat @click="closeCameraDialog">
-                                        Close
+                                        Fechar
                                     </v-btn>
                                 </div>
                             </v-flex>
@@ -197,20 +197,52 @@
   // === uitls ===
   import util from "@/engine/utils";
   import EditorTopbar from "@/engine/components/editor/EditorTopbar.vue";
+  import Multipane from "@/engine/components/common/Multipane.vue";
+  import MultipaneResizer from "@/engine/components/common/MultipaneResizer.vue";
 
   // Vue 3 stubs for removed multipane to satisfy lints and keep layout
   const Multipane = { name: 'Multipane', render(){ const slot = this.$slots && this.$slots.default; return typeof slot === 'function' ? slot() : (slot || null); } };
   const MultipaneResizer = { name: 'MultipaneResizer', render(){ return null } };
 
   // Web stubs: block loading/rendering and formatter
-  const loadBlock = function(_boardInfo){
-    return {
-      blocks: [],
-      base_blocks: [],
-      initial_blocks: '<xml xmlns="http://www.w3.org/1999/xhtml"><variables></variables></xml>'
-    };
+  const loadBlock = async function(boardInfo){
+    try {
+      const board = 'esp32';
+      const platform = 'arduino-esp32';
+      const tryFetch = async (path) => {
+        const r = await fetch(path, { cache: 'no-store' });
+        if (!r.ok) { throw new Error('not found'); }
+        return r.json();
+      };
+      let json = null;
+      try { json = await tryFetch(`/static/data/${board}.toolbox.json`); }
+      catch(e) { try { json = await tryFetch(`/static/data/platform-${platform}.toolbox.json`); } catch(_) {} }
+      if (!json) { throw new Error('toolbox not found'); }
+      return {
+        blocks: json.categories || [],
+        base_blocks: [],
+        initial_blocks: '<xml xmlns="http://www.w3.org/1999/xhtml"><variables></variables></xml>'
+      };
+    } catch(e) {
+      return {
+        blocks: [],
+        base_blocks: [],
+        initial_blocks: '<xml xmlns="http://www.w3.org/1999/xhtml"><variables></variables></xml>'
+      };
+    }
   };
-  const renderBlock = function(_blocks){ return ""; };
+  const renderBlock = function(blockCategories){
+    if (!Array.isArray(blockCategories) || blockCategories.length === 0) { return ""; }
+    const esc = (s)=> String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return blockCategories.map(cat => {
+      const blocks = Array.isArray(cat.blocks) ? cat.blocks.map(b => {
+        const extra = b.xml ? b.xml : '';
+        return `<block type="${esc(b.type)}">${extra}</block>`;
+      }).join('') : '';
+      const colour = (cat.colour != null) ? ` colour="${cat.colour}"` : '';
+      return `<category name="${esc(cat.name || 'Categoria')}"${colour}>${blocks}</category>`;
+    }).join('');
+  };
   const loadAndRenderPluginsBlock = function(_Blockly,_boardInfo,_pluginInfo){ return ""; };
   const reformatCode = function(code){ return code; };
 
@@ -242,7 +274,7 @@
   var myself = null;
 
   export default {
-    components: { EditorTopbar },
+    components: { EditorTopbar, Multipane, MultipaneResizer },
     name: "PageEditor",
     data() {
       return {
@@ -271,7 +303,7 @@
         editor_options: (this.$global && this.$global.editor) ? this.$global.editor.editor_options : {},
         variableDialog: false,
         variable_name: this.name,
-        variableMessage: "Variable Name",
+        variableMessage: "Nome da variável",
         validated: false,
         variable_name_validator: value => {
           const pattern = /(?:^(uint16\s*|uint32\s*|uint8\s*|auto\s*|const\s*|unsigned\s*|signed\s*|register\s*|volatile\s*|static\s*|void\s*|short\s*|long\s*|char\s*|int\s*|float\s*|double\s*|_Bool\s*|complex\s*|return\s*)+$)|(?:\s+\*?\*?\s*)|(^[0-9])|([^_A-Za-z0-9]+)/;
@@ -279,7 +311,7 @@
           if (value == null || value == "") {
             this.validated = false;
           }
-          return this.validated || "Invalid variable name";
+          return this.validated || "Nome de variável inválido";
         },
         musicDialog: false,
         ttsDialog: false,
@@ -454,26 +486,7 @@
         const tb = document.createElement('xml');
         tb.setAttribute('id','webToolbox');
         tb.style.display = 'none';
-        tb.innerHTML = this.$global.setting.kidsMode ? this.kidsToolboxXml() : `
-          <category name="Logic" colour="210">
-            <block type="controls_if"></block>
-            <block type="logic_compare"></block>
-            <block type="logic_operation"></block>
-            <block type="logic_boolean"></block>
-          </category>
-          <category name="Loops" colour="120">
-            <block type="controls_repeat_ext"></block>
-            <block type="controls_whileUntil"></block>
-            <block type="controls_for"></block>
-          </category>
-          <category name="Math" colour="230">
-            <block type="math_number"></block>
-            <block type="math_arithmetic"></block>
-          </category>
-          <category name="Text" colour="160">
-            <block type="text"></block>
-            <block type="text_print"></block>
-          </category>`;
+        tb.innerHTML = this.$global.setting.kidsMode ? this.kidsToolboxXml() : this.defaultToolboxXml();
         document.body.appendChild(tb);
         this.toolbox = tb;
       } else {
@@ -604,33 +617,33 @@
     methods: {
       defaultToolboxXml(){
         return `
-          <category name="Logic" colour="210">
+          <category name="Lógica" colour="210">
             <block type="controls_if"></block>
             <block type="logic_compare"></block>
             <block type="logic_operation"></block>
             <block type="logic_boolean"></block>
           </category>
-          <category name="Loops" colour="120">
+          <category name="Laços" colour="120">
             <block type="controls_repeat_ext"></block>
             <block type="controls_whileUntil"></block>
             <block type="controls_for"></block>
           </category>
-          <category name="Math" colour="230">
+          <category name="Matemática" colour="230">
             <block type="math_number"></block>
             <block type="math_arithmetic"></block>
           </category>
-          <category name="Text" colour="160">
+          <category name="Texto" colour="160">
             <block type="text"></block>
             <block type="text_print"></block>
           </category>`;
       },
       kidsToolboxXml(){
         return `
-          <category name="Start" colour="200">
+          <category name="Início" colour="200">
             <block type="controls_repeat_ext"></block>
             <block type="text_print"></block>
           </category>
-          <category name="Actions" colour="60">
+          <category name="Ações" colour="60">
             <block type="controls_if"></block>
           </category>
         `;
@@ -740,7 +753,7 @@
           }
         }
       },
-      onEditorModeChange(mode, convert = false, create_new = false) {
+      async onEditorModeChange(mode, convert = false, create_new = false) {
         if (mode < 3) {
           let xml = "";
           if (
@@ -757,7 +770,7 @@
               }
             } catch(e) { xml = null; }
           } else {
-            let blocks = loadBlock(myself.$global.board.board_info);
+            let blocks = await loadBlock(myself.$global.board.board_info);
             if (blocks.initial_blocks) {
               try {
                 if (Blockly.Xml && typeof Blockly.Xml.textToDom === 'function') {
@@ -804,7 +817,7 @@
           // cm.updateOptions && cm.updateOptions({ readOnly: mode < 3 });
         }
       },
-      onBoardChange: function(boardInfo, first_init = false) {
+      onBoardChange: async function(boardInfo, first_init = false) {
         //reload plugin
         console.log("board changed resender toolbox");
         this.$global.plugin.pluginInfo = plug.loadPlugin(this.$global.board.board_info);
@@ -813,7 +826,7 @@
             window.initBlockly(boardInfo);
           }
         } catch (e) {}
-        let blocks = loadBlock(boardInfo);
+        let blocks = await loadBlock(boardInfo);
         let stringBlock = "";
         if ("blocks" in blocks) {
           //render extended block

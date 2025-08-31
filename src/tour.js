@@ -8,17 +8,14 @@ export default {
     content: {
       th: `เราได้แนะนำคุณสมบัติที่สำคัญของ IDE ไปแล้ว ส่วนอื่นที่เหลือเราให้คุณได้ทดลองได้ตามใจชอบและหวังว่าคุณจะถูกใจ
       <br/><br/>   หากมีข้อสงสัยหรือคำชี้แนะเพิ่มเติมสามารถแจ้งเข้ามาได้ที่
-      <a href="#"
-         onclick="require('electron').shell.openExternal('https://github.com/MakerAsia/KBProIDE/issues')">
+      <a href="https://github.com/MakerAsia/KBProIDE/issues" target="_blank" rel="noopener noreferrer">
           <strong> Github </strong> </a>  ได้เลย  `,
       en: `That it, all our main features and hope you like it. You can explorer the IDE now. If you have any suggestions/issues or comment, please kindly let us know
-      <a href="#"
-         onclick="require('electron').shell.openExternal('https://github.com/MakerAsia/KBProIDE/issues')">
+      <a href="https://github.com/MakerAsia/KBProIDE/issues" target="_blank" rel="noopener noreferrer">
           <strong> Github </strong> </a>
       `,
       pt: `Pronto! Apresentamos os principais recursos. Agora você pode explorar a IDE. Se tiver sugestões ou problemas, avise-nos em
-      <a href="#"
-         onclick="require('electron').shell.openExternal('https://github.com/MakerAsia/KBProIDE/issues')">
+      <a href="https://github.com/MakerAsia/KBProIDE/issues" target="_blank" rel="noopener noreferrer">
           <strong> Github </strong> </a>`
     },
   },

@@ -56,12 +56,11 @@ export default {
   props: { mode: { type: Number, default: 1 } },
   data(){
     const defaultBoards = [
-      { name: 'kb-basic', title: 'KB Básico', platform: 'web' },
-      { name: 'arduino-uno', title: 'Arduino UNO', platform: 'arduino-avr' },
-      { name: 'esp32', title: 'ESP32', platform: 'arduino-esp32' },
+      { name: 'esp32', title: 'ESP32', platform: 'arduino-esp32' }
     ];
-    const boards = (this.$global && this.$global.board && this.$global.board.available) ? this.$global.board.available : defaultBoards;
-    const current = (this.$global && this.$global.board && this.$global.board.board_info && this.$global.board.board_info.name) ? this.$global.board.board_info.name : boards[0].name;
+    const available = (this.$global && this.$global.board && this.$global.board.available) ? this.$global.board.available : defaultBoards;
+    const boards = available.filter(b => (b.name || '').toLowerCase().includes('esp32'));
+    const current = (this.$global && this.$global.board && this.$global.board.board_info && this.$global.board.board_info.name && (this.$global.board.board_info.name.toLowerCase().includes('esp32'))) ? this.$global.board.board_info.name : (boards[0] ? boards[0].name : 'esp32');
     return { boards, selectedBoard: current, paletteOpen: false, zen: false };
   },
   components: { CommandPalette },

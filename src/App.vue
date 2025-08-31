@@ -142,8 +142,8 @@
                         </template>
                         <span>Você pode iniciar de novo em Ajuda > Tour da IDE</span>
                     </v-tooltip>
+                    <v-btn color="blue darken-1" flat @click="startTour('pt')" class="rounded-md !text-gray-200 hover:!text-white">Iniciar tour (PT)</v-btn>
                     <v-btn color="blue darken-1" flat @click="startTour('en')" class="rounded-md !text-gray-200 hover:!text-white">Iniciar tour (EN)</v-btn>
-                    <v-btn color="blue darken-1" flat @click="startTour('th')" class="rounded-md !text-gray-200 hover:!text-white">Iniciar tour (TH)</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -205,18 +205,18 @@
         expanded: true,
         firstUseDialog: this.$global.setting.firstUse,
         endDialog: false,
-        endDialogText: TourSteps.endDialog.content.en,
-        endDialogTitle: TourSteps.endDialog.title.en,
-        tourStep: TourSteps.en,
+        endDialogText: TourSteps.endDialog.content.pt,
+        endDialogTitle: TourSteps.endDialog.title.pt,
+        tourStep: TourSteps.pt,
         tourCallbacks: {
           onPreviousStep: this.tourPreviousStep,
           onNextStep: this.tourNextStep,
           onStop: this.tourStop
         },
         tourOptions: {
-          labels: TourSteps.button.en
+          labels: TourSteps.button.pt
         },
-        tourLang: "en"
+        tourLang: "pt"
       };
     },
     computed: {},
@@ -228,6 +228,13 @@
         this.$global.$on(item.name, item.callback);
       });
       window.getApp = this;
+      // Detectar idioma salvo ou do navegador
+      try {
+        const savedLang = localStorage.getItem('kb_lang');
+        const navLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+        const lang = savedLang || (navLang.startsWith('pt') ? 'pt' : 'en');
+        this.setLanguage(lang);
+      } catch(e) { this.setLanguage('pt'); }
       //======== INIT ========//
       //----- load color -----//
       this.$vuetify.theme.primary = this.$global.setting.color;
@@ -247,6 +254,25 @@
       }
     },
     methods: {
+      setLanguage(lang){
+        if (lang === 'pt') {
+          this.endDialogTitle = TourSteps.endDialog.title.pt;
+          this.endDialogText = TourSteps.endDialog.content.pt;
+          this.tourStep = TourSteps.pt;
+          this.tourOptions.labels = TourSteps.button.pt;
+        } else if (lang === 'th') {
+          this.endDialogTitle = TourSteps.endDialog.title.th;
+          this.endDialogText = TourSteps.endDialog.content.th;
+          this.tourStep = TourSteps.th;
+          this.tourOptions.labels = TourSteps.button.th;
+        } else {
+          this.endDialogTitle = TourSteps.endDialog.title.en;
+          this.endDialogText = TourSteps.endDialog.content.en;
+          this.tourStep = TourSteps.en;
+          this.tourOptions.labels = TourSteps.button.en;
+        }
+        this.tourLang = lang;
+      },
       closeTab(name) {
         this.$global.ui.removeAllTab(name);
       },
@@ -389,21 +415,13 @@
         }
       },
       skipTour: function() {
-        //this.firstUseDialog = false;
-        //this.$global.setting.firstUse = false;
         this.tourStop();
       },
       startTour: function(lang) {
         this.firstUseDialog = false;
         this.$global.setting.firstUse = true;
-        if (lang === "th") {
-          this.tourOptions.labels = TourSteps.button.th;
-          this.tourStep = TourSteps.th;
-        } else {
-          this.tourOptions.labels = TourSteps.button.en;
-          this.tourStep = TourSteps.en;
-        }
-        this.tourLang = lang;
+        try { localStorage.setItem('kb_lang', lang); } catch(e){}
+        this.setLanguage(lang);
         this.$tours["ideTour"].start();
       },
       tourNextStep: function(step) {
@@ -504,6 +522,9 @@
           if (this.tourLang === "th") {
             this.endDialogTitle = TourSteps.endDialog.title.th;
             this.endDialogText = TourSteps.endDialog.content.th;
+          } else if (this.tourLang === "pt") {
+            this.endDialogTitle = TourSteps.endDialog.title.pt;
+            this.endDialogText = TourSteps.endDialog.content.pt;
           } else {
             this.endDialogTitle = TourSteps.endDialog.title.en;
             this.endDialogText = TourSteps.endDialog.content.en;

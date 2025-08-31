@@ -4,12 +4,12 @@
             <v-btn color="primary darken-2" slot="activator" icon @click="onChangeModeDialog">
                 <v-icon dark>fa-users</v-icon>
             </v-btn>
-            <span>Programming Mode</span>
+            <span>Modo de Programação</span>
         </v-tooltip>
         <v-dialog v-model="modeDialog" max-width="800px" persistent>
             <v-card class="rounded-xl bg-[var(--kb-surface-2)] text-gray-200 ring-1 ring-white/10">
                 <v-card-title class="text-lg font-semibold">
-                    <span class="headline">Select programming mode</span>
+                    <span class="headline">Selecione o modo de programação</span>
                 </v-card-title>
                 <v-divider></v-divider>
                 <v-card-text class="p-0">
@@ -69,12 +69,12 @@
                             }"
                            flat class="rounded-lg"
                            @click="changeEditorMode(selectingMode)">
-                        Change Editor
+                        Trocar Editor
                     </v-btn>
                     <v-btn class="btn-danger rounded-lg"
                            flat
                            @click="modeDialog = false">
-                        Close
+                        Fechar
                     </v-btn>
                 </v-card-actions>
             </v-card>
@@ -100,8 +100,8 @@
         selectingMode: this.$global.editor.mode,
         modes: [
           {
-            name: "Block programming",
-            desc: "Easy programming with blocks",
+            name: "Programação em blocos",
+            desc: "Programação fácil com blocos",
             icon: {
               src: "/static/icons/jigsaw_128_wbg.png",
               size: "96"
@@ -109,8 +109,8 @@
             mode: 1
           },
           {
-            name: "Dual mode (Block & C/C++)",
-            desc: "Learning convert block to code",
+            name: "Modo duplo (Blocos & C/C++)",
+            desc: "Aprenda a converter blocos em código",
             icon: {
               src: "/static/icons/dual2_128_wbg.png",
               size: "96"
@@ -118,8 +118,8 @@
             mode: 2
           },
           {
-            name: "Text-based programming",
-            desc: "Coding with C/C++ language",
+            name: "Programação em texto",
+            desc: "Codificação em C/C++",
             icon: {
               src: "/static/icons/source-code2_128_wbg.png",
               size: "96"
@@ -153,16 +153,6 @@
           /* Monaco config */
           this.$global.editor.editor_options.readOnly = false;
 
-          // we ask a convert
-          /*const res = await this.$dialog.confirm({
-            text: "Do you want to clear and convert block to source code?",
-            title: "Warning",
-            actions: [
-              { text: "Clear & Convert", key: "convert" },
-              { text: "Just switch", key: true },
-              { text: "Cancel", key: false, color: "red darken-1" }
-            ]
-          });*/
           let res = true; //force just switch
           if (res === "convert") { //convert from block
             this.$global.editor.mode = mode;
@@ -180,14 +170,6 @@
           /* Monaco config */
           this.$global.editor.editor_options.readOnly = true;
 
-          /*const res = await this.$dialog.confirm({
-              text: 'Switching to block mode will lose this code.',
-              title: 'Warning',
-              actions : [
-                  { text : 'Cancel', key : false },
-                  { text : 'OK' , key : true},
-              ]
-          });*/
           this.$global.editor.mode = mode;
           this.$nextTick(function() { //wait for element changed before fire event
             this.$global.$emit("editor-mode-change", mode);
