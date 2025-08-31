@@ -52,13 +52,15 @@
 </template>
 
 <script>
-  const fs = require("fs");
+  let fs = null; try { const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron; if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
   import util from "@/engine/utils";
   import Updater from "@/engine/updater/DownloadAndExtract";
 
-  const EAU = require("electron-asar-hot-updater");
-  const electron = require("electron");
-  const requests = require("request-promise");
+  const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+  let EAU = null; // web-only: updater desabilitado
+  let electron = null;
+  try { if (isElectron) { electron = require("electron"); } } catch (e) { electron = null; }
+  let got = null;
 
   let mother = null;
   export default {
@@ -80,19 +82,22 @@
     created() {
       mother = this;
       this.checkUpdate();
-      electron.ipcRenderer.on("help-update", () => {
+      electron && electron.ipcRenderer && electron.ipcRenderer.on("help-update", () => {
         mother.$dialog.notify.info("Checking new update");
         mother.checkUpdate(true, true);
       });
     },
     mounted() {},
-    destroyed() {},
+    unmounted() {},
     methods: {
       isOnline() {
         return window.navigator.onLine;
       },
       checkUpdate(showNotification = false, forceShowUpdate = false) {
         return new Promise((resolve,reject)=> {
+          if (true) { // web-only sem updater
+            return resolve(false);
+          }
           let query = {
             limit : 1,
             "sort" : "-release_date"
@@ -120,7 +125,7 @@
               console.log("checking new update ==>");
               console.log(data);
 
-              EAU.init({
+              EAU && EAU.init({
                 server: false, // Where to check. true: server side, false: client side, default: true.
                 debug: false, // Default: false.
               });
@@ -145,10 +150,13 @@
                   }
                   return resolve(false); // no
                 }
-                EAU.update = { last: data.version, info : data, source : data.zip };
+                if (EAU) {
+                  EAU.update = { last: data.version, info : data, source : data.zip };
+                }
                 mother.updateDialog = true;
                 return resolve(true);
               }else if(data.type.includes("app")) {
+                if (!EAU) { return resolve(false); }
                 EAU.process(data, function(error, last, body) {
                   if (!error) {
                     if (
@@ -187,6 +195,7 @@
         mother.updateDialog = false;
       },
       updateApp() {
+        if (!EAU) { return; }
         mother.updateStatus = "UPDATING";
         mother.updateText = "Downloading ... ";
         //======== app update ========//
@@ -200,7 +209,7 @@
             mother.errorAndReset(error);
             return false;
           }
-          if (fs.existsSync(util.baseDir + "/migrate.js")){
+          if (fs && fs.existsSync(util.baseDir + "/migrate.js")){
             mother.updateText = "Migrating to new version ...";
             let mgFile = util.baseDir + "/migrate.js";
             let mg = util.requireFunc(mgFile);
@@ -214,8 +223,9 @@
           if(mother.update.type.includes("app")){ // app need to be restarted
             mother.updateText = "Restarting ...";
             setTimeout(() => {
-              electron.remote.app.relaunch();
-              electron.remote.app.exit(0);
+              if (electron && electron.ipcRenderer) {
+                electron.ipcRenderer.send("update-restart");
+              }
             }, 2000);
           }else{                                  // others type just reload
             let timeout = 6;

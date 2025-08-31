@@ -51,8 +51,24 @@
       };
     },
     mounted() {
-      //Tone.start();
-      this.synth = new Tone.Synth().toMaster();
+      try {
+        // adiar inicialização do áudio até gesto do usuário
+        const initAudio = async () => {
+          try {
+            if (window.Tone && window.Tone.start) { await window.Tone.start(); }
+          } catch(e) {}
+          try {
+            const ToneRef = (typeof Tone !== 'undefined') ? Tone : (window.Tone || null);
+            if (ToneRef) { this.synth = new ToneRef.Synth().toMaster(); }
+          } catch(e) {}
+          window.removeEventListener('pointerdown', initAudio);
+          window.removeEventListener('keydown', initAudio);
+          window.removeEventListener('click', initAudio);
+        };
+        window.addEventListener('pointerdown', initAudio, { once: true });
+        window.addEventListener('keydown', initAudio, { once: true });
+        window.addEventListener('click', initAudio, { once: true });
+      } catch(e) {}
     },
     computed: {
       filteredItems() {
@@ -66,7 +82,10 @@
     methods: {
       pressedNote: function(note) {
         if (note !== "SIL") {
-          this.synth.triggerAttackRelease(note, "8n");
+          try {
+            if (!this.synth) { return; }
+            this.synth.triggerAttackRelease(note, "8n");
+          } catch(e) {}
         }
         this.tags.push({ text: note });
       },

@@ -1,12 +1,22 @@
 import util from "@/engine/utils";
-import RealBlockly from "vue-blockly";
+// vue-blockly removido no web-only
 
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const request = require("request");
-const request_promise = require("request-promise");
-const progress = require("request-progress");
+const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+let fs = null; let os = null; let path = null;
+try { if (isElectron) { fs = require("fs"); os = require("os"); path = require("path"); } } catch(e) { fs = null; os = null; path = null; }
+if (!fs) {
+  // stubs para ambiente web
+  fs = {
+    existsSync: function(){ return false; },
+    readdirSync: function(){ return []; },
+    lstatSync: function(){ return { isDirectory(){ return false; }, isFile(){ return false; } }; },
+    readFileSync: function(){ return ""; },
+    createWriteStream: function(){ return { on(){ return this; }, end(){}, pipe(){ return this; } }; }
+  };
+}
+if (!os) { os = { tmpdir: function(){ return "/tmp"; } }; }
+if (!path) { path = { join: function(){ return Array.from(arguments).join("/"); }, dirname: function(p){ return p ? p.split('/').slice(0,-1).join('/') : ''; } }; }
+let got = null;
 let localBoardName = "";
 let localPlugins = {};
 
@@ -25,6 +35,7 @@ const decodeArduinoLibraryConfig = function(targetFile) {
 
 const listPlugin = function(dir) {
   let plugins = {};
+  if (!fs || !fs.readdirSync) { return plugins; }
   let blockFiles = fs.readdirSync(dir);
   if (blockFiles.length > 0) {
     blockFiles.forEach(blockFile => {
@@ -82,6 +93,7 @@ const listPlugin = function(dir) {
 
 const listKidBrightPlugin = function(dir) {
   let plugins = {};
+  if (!fs || !fs.readdirSync) { return plugins; }
   let catPlugins = fs.readdirSync(dir);
   if (catPlugins.length > 0) {
     catPlugins.forEach(plugin => {
@@ -133,7 +145,7 @@ const listKidBrightPlugin = function(dir) {
 
 const listExamples = function(exampleDir) {
   let exampleInfo = [];
-  if (fs.existsSync(exampleDir)) {
+  if (fs.existsSync && fs.existsSync(exampleDir)) {
     let exampleFolders = fs.readdirSync(exampleDir);
     exampleFolders.forEach(folder => {
       let targetDir = `${exampleDir}/${folder}`;
@@ -152,7 +164,7 @@ const listExamples = function(exampleDir) {
 const listCategoryPlugins = function(pluginDir, boardInfo) {
   let categories = [];
   let allPlugin = {};
-  if (fs.existsSync(pluginDir)) {
+  if (fs.existsSync && fs.existsSync(pluginDir)) {
     let cats = fs.readdirSync(pluginDir);
     cats.forEach(cat => {
       let dir = `${pluginDir}/${cat}`;
@@ -180,7 +192,7 @@ const listCategoryPlugins = function(pluginDir, boardInfo) {
         let pluginInfo = null;
         let infoFile = `${dir}/library.json`;
         let arduinoInfoFile = `${dir}/library.properties`;
-        if (fs.existsSync(infoFile)) {
+        if (fs.existsSync && fs.existsSync(infoFile)) {
           pluginInfo = JSON.parse(fs.readFileSync(infoFile, "utf8"));
           if ("frameworks" in pluginInfo && "platforms" in pluginInfo) { //this is platformIO config file
             if (pluginInfo.frameworks === "arduino") {
@@ -202,7 +214,7 @@ const listCategoryPlugins = function(pluginDir, boardInfo) {
             pluginInfo["title"] = pluginInfo["name"];
             pluginInfo["name"] = pluginInfo["name"].replace(/\s/g, "-").trim();
           }
-        } else if (fs.existsSync(arduinoInfoFile)) {
+        } else if (fs.existsSync && fs.existsSync(arduinoInfoFile)) {
           pluginInfo = decodeArduinoLibraryConfig(arduinoInfoFile);
           if ("url" in pluginInfo) {
             pluginInfo["git"] = pluginInfo.url;
@@ -243,10 +255,10 @@ const listCategoryPlugins = function(pluginDir, boardInfo) {
         let blockPlugins = {};
         let srcFile = [];
         let srcIncDir = dir;
-        if (fs.existsSync(blockDir)) {
+        if (fs.existsSync && fs.existsSync(blockDir)) {
           blockPlugins = listPlugin(blockDir);
         }
-        if (fs.existsSync(srcDir)) {
+        if (fs.existsSync && fs.existsSync(srcDir)) {
           srcFile = fs.readdirSync(srcDir);
           srcIncDir = srcDir;
         } else if (fs.readdirSync(dir).find(el => el.endsWith(".h"))) {
@@ -254,7 +266,7 @@ const listCategoryPlugins = function(pluginDir, boardInfo) {
           srcIncDir = dir;
         }
         let exampleInfo = [];
-        if (fs.existsSync(exampleDir)) {
+        if (fs.existsSync && fs.existsSync(exampleDir)) {
           exampleInfo = listExamples(exampleDir);
         }
         categories.push({
@@ -316,7 +328,9 @@ const plugins = function(boardInfo) {
 };
 const listOnlinePlugin = function(query) {
   return new Promise((resolve, reject) => {
-    Vue.prototype.$db2.getItems("plugins", query).then((data, meta) => {
+    const api = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db2) || null;
+    if (!api || typeof api.getItems !== 'function') { reject('db2 unavailable'); return; }
+    api.getItems("plugins", query).then((data, meta) => {
       resolve({ plugins: data.data, meta: data.meta });
     }).catch(err => {
       console.error("list online plugin error : " + err);
@@ -332,22 +346,13 @@ const installOnlinePlugin = function(info, cb) {
     let zipUrl = info.git + "/archive/master.zip";
     let zipFile = os.tmpdir() + "/" + util.randomString(10) + ".zip";
     let file = fs.createWriteStream(zipFile);
-    progress(
-      request(zipUrl),
-      {
-        throttle: 2000, // Throttle the progress event to 2000ms, defaults to 1000ms
-        delay: 1000,    // Only start to emit after 1000ms delay, defaults to 0ms
-        followAllRedirects: true,
-        follow: true
-      }
-    ).on("progress", function(state) {
-      cb && cb({ process: "board", status: "DOWNLOAD", state: state });
-    }).on("error", function(err) {
-      reject(err);
-    }).on("end", function() {
-      file.end();
-      return resolve(zipFile);
-    }).pipe(file);
+    got.stream(zipUrl)
+      .on("downloadProgress", p => {
+        cb && cb({ process: "board", status: "DOWNLOAD", state: { percent: p.percent, transferred: p.transferred, total: p.total } });
+      })
+      .on("error", err => reject(err))
+      .on("end", () => { file.end(); resolve(zipFile); })
+      .pipe(file);
   }).then((zipFile) => { //unzip file
     return util.unzip(zipFile, { dir: targetDir }, p => {
       cb && cb({ process: "board", status: "UNZIP", state: p });
@@ -421,7 +426,9 @@ const publishPlugin = function(url) {
         json = JSON.parse(res);
         if (json.name) { //search if existing
           let query = { filter: { name: { eq: json.name } } };
-          return Vue.prototype.$db2.getItems("plugins", query).then((data, meta) => {
+          const api2 = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db2) || null;
+          if (!api2 || typeof api2.getItems !== 'function') { return false; }
+          return api2.getItems("plugins", query).then((data, meta) => {
             return data.data && data.data.length === 1 && data.data[0];
           }).catch(err => {
             console.error("list online plugin error : " + err);
@@ -451,7 +458,9 @@ const publishPlugin = function(url) {
           if(!json.category){
             json.category = "Uncategorized";
           }
-          Vue.prototype.$db_dev.createItem("plugins", json)
+          const devApi = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db_dev) || null;
+          if (!devApi || typeof devApi.createItem !== 'function') { throw new Error('db_dev unavailable'); }
+          devApi.createItem("plugins", json)
             .then(res => {
               console.log(res);
               if (res) {

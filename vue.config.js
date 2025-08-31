@@ -1,67 +1,41 @@
+const isElectronRun = false;
+const webpack = require('webpack');
+
 module.exports = {
   runtimeCompiler: true,
+  lintOnSave: false,
   configureWebpack: {
     optimization: {
 
     },
-    externals: {
-      vue: "Vue",
-    },
-  },
-  pluginOptions: {
-    electronBuilder: {
-      outputDir: "dist_electron",
-      builderOptions: {
-        appId: "com.makerasia.ide",
-        "mac": {
-          "category": "public.app-category.productivity",
-        },
-        "dmg": {},
-        "copyright": "Copyright © 2019 MakerAsia Co.,Ltd",
-        extraResources: [
-          {
-            "from": "boards",
-            "to": "../boards",
-          },
-          {
-            "from": "platforms",
-            "to": "../platforms",
-          },
-          {
-            "from": "packages",
-            "to": "../packages",
-          },
-          {
-            "from": "plugins",
-            "to": "../plugins",
-          },
-        ],
-        "win": {
-          "target": [
-            {
-              "target": "nsis",
-            }
-          ]
-        },
-        "nsis" : {
-          "oneClick" : false,
-          "perMachine" : false,
-          "allowElevation" : false,
-        }
-        // options placed here will be merged with default configuration and passed to electron-builder
+    resolve: {
+      alias: {
+        electron: require('path').resolve(__dirname, 'src/shims/electron-renderer-stub.js'),
       },
-      chainWebpackMainProcess: config => {
-        // Chain webpack config for electron main process only
-        console.log("chaingWebpackMainProcess");
-      },
-      chainWebpackRendererProcess: config => {
-        // Chain webpack config for electron renderer process only
-        // The following example will set IS_ELECTRON to true in your app
-        config.plugin("define").tap(args => {
-          args[0]["IS_ELECTRON"] = true;
-          return args;
-        });
+      fallback: {
+        fs: false,
+        module: false,
+        path: false,
+        crypto: false,
+        stream: false,
+        zlib: false,
+        os: false,
+        http: false,
+        https: false,
+        vm: false,
+        querystring: false,
+        timers: false,
+        events: false,
+        buffer: false,
+        net: false,
+        tls: false,
+        dns: false,
+        http2: false,
+        child_process: false,
       },
     },
+    target: "web",
+    plugins: [],
   },
+  pluginOptions: {},
 };

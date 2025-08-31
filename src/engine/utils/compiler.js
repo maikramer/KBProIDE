@@ -6,7 +6,9 @@ export default {
         errors = err.error.stderr.split("\n").
         filter(v => v.indexOf("user_app.cpp") > -1).
         map(v => v.split("user_app.cpp:")[1]);
-        Vue.prototype.$global.$emit("compiler-error", errors);
+        if (typeof window !== 'undefined' && window.getApp && window.getApp.$global && typeof window.getApp.$global.$emit === 'function') {
+          window.getApp.$global.$emit("compiler-error", errors);
+        }
         resolve(errors);
       } else {
         reject(`no err.error`, err);

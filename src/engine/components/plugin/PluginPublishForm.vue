@@ -187,8 +187,8 @@
 
                     <v-card-actions>
                         <v-spacer></v-spacer>
-                        <v-btn class="btn" color="primary" flat @click.native="step = 1">Prev</v-btn>
-                        <v-btn class="btn-danger" flat @click.native="pluginDialog = false">Close</v-btn>
+                        <v-btn class="btn" color="primary" flat @click="step = 1">Prev</v-btn>
+                        <v-btn class="btn-danger" flat @click="pluginDialog = false">Close</v-btn>
                     </v-card-actions>
 
                         </v-layout>
@@ -209,9 +209,6 @@
 </style>
 
 <script>
-  const request = require("request");
-  const request_promise = require("request-promise");
-  const progress = require("request-progress");
   import util from "@/engine/utils";
 
   let mother;
@@ -269,9 +266,11 @@
       parseConfig: function() {
         this.processing_step1 = true;
         let json;
-        request_promise(this.plugin_info.git + "raw/master/library.json?random=" + util.randomString()) //add randomstring prevent cached response
-          .then(res => {
-            json = JSON.parse(res);
+        fetch(this.plugin_info.git + "raw/master/library.json?random=" + util.randomString(), { cache: 'no-store' })
+          .then(async res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            const text = await res.text();
+            json = JSON.parse(text);
             if (json.name) { //search if existing
               let query = { filter: { name: { eq: json.name } } };
               return Vue.prototype.$db2.getItems("plugins", query).then((data, meta) => {

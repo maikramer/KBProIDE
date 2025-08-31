@@ -49,14 +49,22 @@
 </template>
 
 <script>
-import colors from 'vuetify/es5/util/colors';
-import { constants } from 'http2';
 export default {
   data () {
     return {
       themeColor: 'indigo',
       sideBarOption: 'light',
-      colors: colors
+      colors: {
+        blue: { base: '#2196F3' },
+        teal: { base: '#009688' },
+        red: { base: '#F44336' },
+        orange: { base: '#FF9800' },
+        purple: { base: '#9C27B0' },
+        indigo: { base: '#3F51B5' },
+        cyan: { base: '#00BCD4' },
+        pink: { base: '#E91E63' },
+        green: { base: '#4CAF50' },
+      }
     };
   },
   computed: {

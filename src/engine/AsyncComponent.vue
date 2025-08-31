@@ -3,6 +3,7 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from 'vue';
 export default {
     name: 'async-component',
     props: ['data', 'target', 'name', 'base','type'],
@@ -24,10 +25,10 @@ export default {
             if(this.target){
                 if(this.base){
                     console.log('loading async component : ' + `${this.base}/${this.target}`);
-                    this.component = () => { return import(`${this.base}/${this.target}`); };
+                    this.component = defineAsyncComponent(() => import(`${this.base}/${this.target}`));
                 }else{
                     console.log('loading async component : ' + `${this.target}`);
-                    this.component = () => { return import(`${this.target}`); };                    
+                    this.component = defineAsyncComponent(() => import(`${this.target}`));                    
                 }
             }else{
                 console.log('async component no target');

@@ -44,7 +44,7 @@
                 </smooth-scrollbar>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn class="btn-danger" flat @click.native="exampleDialog = false">Close</v-btn>
+                    <v-btn class="btn-danger" flat @click="exampleDialog = false">Close</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -52,13 +52,14 @@
 </template>
 
 <script>
-  import {remote} from "electron";
+  const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+  let ipcRenderer = null;
+  try { if (isElectron) { ipcRenderer = require("electron").ipcRenderer; } } catch(e) { ipcRenderer = null; }
   import util from "@/engine/utils";
   import TreeMenu from "@/engine/views/widgets/list/TreeMenu";
   import TreeMenu2 from "@/engine/views/widgets/list/TreeMenu2";
   let mother = null;
   const { promises: fs } = require("fs");
-  const path = require("path");
   export default {
     name: "example-dialog",
     components: {
@@ -127,21 +128,17 @@
         return await this.createMenu(boardExampleDir, "examples");
       },
       openExample(type, file) {
-        let win = new remote.BrowserWindow({
-          width: 800,
-          height: 600,
-          icon: path.join(__static, "icon.png"),
-          webPreferences: { //TODO check here!
-            webSecurity: false
-          }
-        });
-        win.on("close", function() { win = null; });
         //"http://localhost:8080/#/editor?persistance=false&mode=1&file=file
         let mode = type === "block"
           ? "1"
           : "3";
-        win.loadURL(`${document.location.href.split("?")[0]}?persistence=false&mode=${mode}&file=${file}`);
-        win.show();
+        const url = `${document.location.href.split("?")[0]}?persistence=false&mode=${mode}&file=${file}`;
+        if (ipcRenderer) {
+          ipcRenderer.invoke("open-example-window", { width: 800, height: 600, url });
+        } else {
+          // fallback no navegador: abrir em nova aba
+          window.open(url, "_blank");
+        }
         //--tracking--//
         //this.$track.event("examples", "open",
         //                  {evLabel: exampleInfo + "_code", evValue: 1, clientID: this.$track.clientID}).

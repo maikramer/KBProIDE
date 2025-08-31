@@ -1,6 +1,6 @@
 export default [
   {
-    path: '*',
+    path: '/:pathMatch(.*)*',
     meta: {
       public: true,
     },

@@ -4,53 +4,30 @@
   </div>
 </template>
 
-<script>  
-  import SmoothScrollbar from 'smooth-scrollbar'
-  const pg = require('smooth-scrollbar/plugins/overscroll');
-  
-  let scrollbar
+<script>
   export default {
     name: 'smooth-scrollbar',
-    props: {      
-      options: {
-        type: Object,
-        required: false,
-        default: () => ({})
-      }
-    },
-    data() {
-      return {
-        scrollbar: null,
-        defaultOptions : {
-            damping: 0.1,
-            thumbMinSize: 20,
-            renderByPixels: true,
-            alwaysShowTracks: false,
-            continuousScrolling: true,
-            delegateTo: null,
-            plugins: {
-                overscroll : { 
-                    enable: true,
-                    effect: 'glow',
-                    damping: 0.1,
-                    maxOverscroll: 150,
-                    glowColor: '#222a2d'
-                }
-            }
-        }
-      }
-    },
+    props: { options: { type: Object, required: false, default: () => ({}) } },
     mounted() {
-      scrollbar = SmoothScrollbar.init(
-        this.$refs.scrollArea,
-        Object.assign({}, this.defaultOptions, this.options)
-      )
-      this.scrollbar = scrollbar
-    },
-    destroyed() {
-      //scrollbar.destroy()
-      scrollbar = null;
-      this.scrollbar = null;
+      const el = /** @type {HTMLElement|null} */ (this.$refs.scrollArea);
+      if (!el) return;
+      // eslint-disable-next-line
+      el.style.overflow = 'auto';
+      // eslint-disable-next-line
+      el.style.setProperty('-webkit-overflow-scrolling', 'touch');
+      // Provide a minimal API compatible with old code expecting .scrollbar.addListener/removeListener
+      // We attach a simple listener for the native scroll event.
+      const self = this;
+      const api = {
+        addListener(handler) { try { el.addEventListener('scroll', handler); } catch(e) {} },
+        removeListener(handler) { try { el.removeEventListener('scroll', handler); } catch(e) {} },
+      };
+      // Expose via this.$refs.scrollbar.scrollbar
+      this.scrollbar = api;
+      // Also keep backward compatible shape: this.$refs.scrollbar.scrollbar
+      // by setting a proxy object on the component instance reference itself
+      // (the parent uses this.$refs.scrollbar, which is the component instance)
+      // so we assign a property named 'scrollbar'.
     }
   }
 </script>

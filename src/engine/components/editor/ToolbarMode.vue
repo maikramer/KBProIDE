@@ -7,14 +7,14 @@
             <span>Programming Mode</span>
         </v-tooltip>
         <v-dialog v-model="modeDialog" max-width="800px" persistent>
-            <v-card>
-                <v-card-title>
+            <v-card class="rounded-xl bg-[var(--kb-surface-2)] text-gray-200 ring-1 ring-white/10">
+                <v-card-title class="text-lg font-semibold">
                     <span class="headline">Select programming mode</span>
                 </v-card-title>
                 <v-divider></v-divider>
-                <v-card-text>
+                <v-card-text class="p-0">
                     <v-item-group>
-                        <v-container grid-list-md>
+                        <v-container grid-list-md class="px-4 pb-6">
                             <v-layout wrap>
                                 <template v-for="(mode,index) in modes">
                                     <template v-if="$global.setting.devMode === false && (index+1) === 2">
@@ -24,7 +24,8 @@
                                             <v-hover>
                                                 <v-card light slot-scope="{ hover }"
                                                         :class="`elevation-${hover ? 12 : (selectingMode == index+1? 8 : 2)}`"
-                                                        @click.native="selectingMode = mode.mode"
+                                                        class="rounded-xl bg-[var(--kb-surface)] hover:ring-2 ring-white/20 transition"
+                                                        @click="selectingMode = mode.mode"
                                                         height="200">
                                                     <transition name="fade">
                                                         <div class="sneaker" v-if="selectingMode == index+1"
@@ -39,14 +40,14 @@
                                                             </v-layout>
                                                         </div>
                                                     </transition>
-                                                    <v-card-text>
-                                                        <div class="layout ma-0 align-center column pt-4">
-                                                            <v-avatar color="primary" :size="mode.icon.size">
+                                                    <v-card-text class="pt-2">
+                                                        <div class="layout ma-0 align-center column pt-2">
+                                                            <v-avatar color="primary" :size="mode.icon.size" class="shadow ring-2 ring-white/20">
                                                                 <img :src="mode.icon.src" alt="Kid Level">
                                                             </v-avatar>
-                                                            <div class="flex text-sm-center">
-                                                                <div class="subheading">{{mode.name}}</div>
-                                                                <span class="caption">{{mode.desc}}</span>
+                                                            <div class="flex text-sm-center mt-2">
+                                                                <div class="subheading font-medium">{{mode.name}}</div>
+                                                                <span class="caption opacity-70">{{mode.desc}}</span>
                                                             </div>
                                                         </div>
                                                     </v-card-text>
@@ -59,20 +60,20 @@
                         </v-container>
                     </v-item-group>
                 </v-card-text>
-                <v-card-actions>
+                <v-card-actions class="px-4 pb-4">
                     <v-spacer></v-spacer>
                     <v-btn :disabled="this.selectingMode === this.$global.editor.mode"
                            :class="{
                               'btn-success': this.selectingMode !== this.$global.editor.mode,
                               'disabled': this.selectingMode === this.$global.editor.mode
                             }"
-                           flat
-                           @click.native="changeEditorMode(selectingMode)">
+                           flat class="rounded-lg"
+                           @click="changeEditorMode(selectingMode)">
                         Change Editor
                     </v-btn>
-                    <v-btn class="btn-danger"
+                    <v-btn class="btn-danger rounded-lg"
                            flat
-                           @click.native="modeDialog = false">
+                           @click="modeDialog = false">
                         Close
                     </v-btn>
                 </v-card-actions>

@@ -1,0 +1,28 @@
+---
+globs: src/**
+---
+## Engine e Estado Global
+
+- **Injeções globais**: `main.ts` injeta `app.config.globalProperties.$global`, `$engine`, `$db2`, `$db_dev`, `$track` e fornece via `app.provide()`.
+- **$global**: Objeto Vue com chaves principais:
+  - `setting`: `{ firstUse, devMode, color, plugin.sortby, package.sortby, board_selector.sortby }`
+  - `board`: `{ board, board_info: { platform, name, title, dir, version, image, description } }`
+  - `ui`: `{ bottomTab, bottomTabModel, rightTab, rightTabModel, rightDrawerComponent, leftDrawerComponent, snackbarStatus, snackbarConfig, removeAllTab(name) }`
+  - `editor`: `{ mode, blockCode, sourceCode, Blockly, editor_options: { readOnly } }`
+  - `plugin`: `{ sortby, pluginInfo: { categories: [] }, plugins }`
+  - `package`: `{ sortby }`
+- **Uso recomendado**:
+  - Em componentes, acesse via `inject('global')` ou `this.$global` (compat). Prefira `inject`/`provide` para TS-friendly.
+  - Para emitir eventos globais, use `$global.$emit` conforme wrapper do `mitt`.
+
+### Engine bundle
+- `$engine.data` contém: `{ util, compiler, componentManager, boardManager, platformManager, uiManager, pluginManager }`.
+- Acesse com `const engine = inject('engine')` e tipar localmente quando necessário.
+
+### Guardas de ambiente
+- `isElectron` é derivado de `process.versions.electron`. Ao usar APIs Node, sempre proteja com o guarda, como em `checkFileExists`.
+- Leitura de arquivos `.bly` e `.ino` só quando `isElectron` e caminho válido.
+
+### Diretrizes
+- Não mutar forma do `$global` em tempo de execução; estenda com novas chaves de forma compatível.
+- Ao adicionar managers no engine, exporte-os por `main.ts` e documente aqui.

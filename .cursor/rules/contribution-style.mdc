@@ -1,0 +1,14 @@
+---
+description: Convenções de contribuição e estilo para o KBProIDE
+globs: src/**
+---
+## Convenções de Contribuição e Estilo
+
+- **Linguagem**: Vue 3 + TS. Evitar `any` amplo em APIs. Nomear variáveis e funções de forma descritiva.
+- **Estrutura**: Novos componentes em `src/engine/components/...` ou `src/engine/views/...` conforme o caso.
+- **Injeções globais**: Acesse via `inject('global')`/`inject('engine')` em vez de usar diretamente `window`.
+- **Roteamento**: Adicionar rotas em `src/router/paths.js`, garantindo `name` único.
+- **Estado**: Use `vuex` para estado compartilhado transversal; para estado local, `ref`/`reactive`.
+- **Estilo**: Tailwind utilitário + Vuetify compat. Preferir classes utilitárias e tokens existentes.
+- **Build**: Não introduzir dependências Node que exijam polyfills no browser.
+- **Testes**: Adicionar testes unitários quando possível; mocks para `$global`/`$engine`.

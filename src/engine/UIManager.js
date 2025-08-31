@@ -1,6 +1,7 @@
 import utils from '@/engine/utils';
 import Vue from "vue";
-import { timeout } from 'q';
+// Cast para permitir acesso a prototype no ambiente Vue 3 + TS defs
+const VueAny = /** @type {any} */ (Vue);
 export default {
     persistence : {
         rightTabSize : 50, //percentage
@@ -39,7 +40,7 @@ export default {
         leftDrawerComponent : false,
         /* tab */
 
-        global : ()=>{ return Vue.prototype.$global; },
+        global : ()=>{ return VueAny.prototype.$global; },
         rightDrawer : function(comp){            
             if(comp){
                 console.log('open right drawer' + comp);

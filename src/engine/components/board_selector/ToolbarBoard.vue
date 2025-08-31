@@ -1,19 +1,19 @@
 <template>
     <div>
         <v-tooltip bottom>
-            <v-btn color="primary darken-2" slot="activator" icon @click="boardDialog = !boardDialog">
+            <v-btn color="primary darken-2" slot="activator" icon @click="boardDialog = !boardDialog" class="!text-gray-200 hover:!text-white">
                 <v-icon dark>fa-microchip</v-icon>
             </v-btn>
-            <span>Board Manager</span>
+            <span>Gerenciador de Placas</span>
         </v-tooltip>
         <v-dialog v-model="boardDialog" max-width="80%" max-height="81%" scrollable persistent>
-            <v-card>
-                <v-card-title>
-                    <span class="headline">Current board : {{ this.$global.board.board_info.title }}</span>
+            <v-card class="rounded-xl bg-[var(--kb-surface)] ring-1 ring-white/10">
+                <v-card-title class="text-gray-100 font-semibold">
+                    <span class="headline">Placa atual: {{ this.$global.board.board_info.title }}</span>
                     <v-spacer class="hidden-xs-only"></v-spacer>
                     <v-text-field
                             prepend-icon="search"
-                            label="Board name"
+                            label="Nome da placa"
                             class="ma-0 pa-0 search-board"
                             single-line
                             clearable
@@ -26,25 +26,22 @@
                     ></v-text-field>
                     <v-menu bottom left>
                         <template v-slot:activator="{ on }">
-                            <v-btn icon v-on="on">
+                            <v-btn icon v-on="on" class="!text-gray-200 hover:!text-white">
                                 <v-icon>more_vert</v-icon>
                             </v-btn>
                         </template>
-                        <v-list>
-                            <!--v-list-tile @click="changeOrder('vendor')">
-                                              <v-list-tile-title>Order by vendor</v-list-tile-title>
-                                          </v-list-tile-->
+                        <v-list class="rounded-lg ring-1 ring-white/10 bg-[var(--kb-surface-2)]">
                             <v-list-tile @click="changeOrder('recommended')">
-                                <v-list-tile-title>Order by recommended</v-list-tile-title>
+                                <v-list-tile-title>Ordenar por recomendadas</v-list-tile-title>
                             </v-list-tile>
                             <v-list-tile @click="changeOrder('name')">
-                                <v-list-tile-title>Order by name</v-list-tile-title>
+                                <v-list-tile-title>Ordenar por nome</v-list-tile-title>
                             </v-list-tile>
                             <v-list-tile @click="changeOrder('platform')">
-                                <v-list-tile-title>Order by platform</v-list-tile-title>
+                                <v-list-tile-title>Ordenar por plataforma</v-list-tile-title>
                             </v-list-tile>
                             <v-list-tile @click="changeOrder('vendor')">
-                                <v-list-tile-title>Order by vendor</v-list-tile-title>
+                                <v-list-tile-title>Ordenar por fabricante</v-list-tile-title>
                             </v-list-tile>
                         </v-list>
                     </v-menu>
@@ -61,12 +58,12 @@
                                     <v-layout wrap>
                                         <v-flex sm6 md4 lg3 v-for="data in boardData" :key="data.name">
                                             <v-hover>
-                                                <v-card slot-scope="{ hover }" :class="`elevation-${ hover? 12 : selectingBoard.name === data.name ? 8: 2}`">
-                                                    <v-responsive @click.native="selectingBoard = data">
-                                                        <h4 v-if="selectingBoard.name === data.name" class="bg-success text-white pa-1 pl-2 mb-1">
+                                                <v-card slot-scope="{ hover }" :class="`elevation-${ hover? 12 : selectingBoard.name === data.name ? 8: 2}`" class="rounded-xl ring-1 ring-white/10 bg-[var(--kb-surface-2)]">
+                                                    <v-responsive @click="selectingBoard = data">
+                                                        <h4 v-if="selectingBoard.name === data.name" class="bg-green-600 text-white pa-1 pl-2 mb-1 rounded-t-lg">
                                                             {{ data.title }}
                                                         </h4>
-                                                        <h4 v-else class="bg-gray-400 pa-1 pl-2 mb-1">
+                                                        <h4 v-else class="bg-gray-600 text-gray-100 pa-1 pl-2 mb-1 rounded-t-lg">
                                                             {{ data.title }}
                                                         </h4>
                                                         <img
@@ -166,15 +163,15 @@
                         </div>
 
                         <v-divider></v-divider>
-                        <h3 class="ml-2 mt-2">
-                            Online available
+                        <h3 class="ml-2 mt-2 text-gray-100">
+                            Disponíveis online
                         </h3>
 
                         <div>
                             <v-container grid-list-xl fluid>
                                 <v-layout wrap>
                                     <v-flex v-if="isOnline() === false" xs12 md12 sm12 class="text-xs-center">
-                                        Please connect internet to use this feature.
+                                        Conecte-se à internet para usar este recurso.
                                     </v-flex>
                                     <v-flex v-else-if="onlineBoardStatus === 'wait'" xs12 md12 sm12 class="text-xs-center">
                                         <v-progress-circular
@@ -185,9 +182,9 @@
                                     </v-flex>
                                     <v-flex sm6 md4 lg3 v-else-if="onlineBoardStatus !== 'wait'" v-for="data in onlineBoards" :key="data.name">
                                         <template v-if="data.status !== 'INSTALLED'">
-                                            <v-card>
+                                            <v-card class="rounded-xl ring-1 ring-white/10 bg-[var(--kb-surface-2)]">
                                                 <v-responsive>
-                                                    <h4 class="white--text pa-1 pl-2 primary darken-1 mb-1">
+                                                    <h4 class="text-white pa-1 pl-2 primary darken-1 mb-1 rounded-t-lg">
                                                         {{ data.title }}
                                                     </h4>
                                                     <v-img contain v-if="data.image.startsWith('http') === true" class="board-image" :src="data.image"/>
@@ -214,7 +211,7 @@
                                                         <div class="board-desc-more">
                                                             <v-icon>fa-chevron-down</v-icon>
                                                         </div>
-                                                        {{data.status === 'DRAFT' ? '(Under review) ' : ''}}{{ data.description }}
+                                                        {{data.status === 'DRAFT' ? '(Em revisão) ' : ''}}{{ data.description }}
                                                     </div>
                                                 </v-card-text>
                                                 <v-divider></v-divider>
@@ -269,9 +266,9 @@
                     <v-btn v-if="$global.setting.devMode == true"
                            class="btn-primary"
                            flat
-                           @click.native="publishNewBoard"
+                           @click="publishNewBoard"
                     >
-                        Publish your board
+                        Publicar sua placa
                     </v-btn>
                     <v-btn :class="{'btn-gray-400': this.$global.board.board_info.name === this.selectingBoard.name,
                                     'btn-success': this.$global.board.board_info.name !== this.selectingBoard.name}"
@@ -279,9 +276,9 @@
                            @click="changeBoard(selectingBoard)"
                            :disabled="this.$global.board.board_info.name === this.selectingBoard.name"
                     >
-                        Change Board
+                        Trocar Placa
                     </v-btn>
-                    <v-btn class="btn-danger" flat @click.native="boardDialog = false">Close</v-btn>
+                    <v-btn class="btn-danger" flat @click="boardDialog = false">Fechar</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -289,11 +286,13 @@
 </template>
 
 <script>
-  const { shell } = require("electron");
-  const fs = require("fs");
+  const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+  let shell = { openExternal: (url)=>{ try{ window.open(url, '_blank'); }catch(e){} } };
+  try { if (isElectron) { shell = require("electron").shell; } } catch(e) {}
+  let fs = null; try { if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
   import bm from "@/engine/BoardManager";
   import util from "@/engine/utils";
-  import {setTimeout} from "timers";
+  // Use browser timers in web-only build
 
   let mother = null;
   export default {
@@ -308,13 +307,18 @@
           }
         }
       });
+      try {
+        if (this.$global && this.$global.$on) {
+          this.$global.$on('open-board-dialog', () => { this.boardDialog = true; });
+        }
+      } catch (e) {}
     },
     data() {
       return {
         selectingBoard: this.$global.board.board_info,
         boardDialog: false,
         searchText: "",
-        boardOrderBy: this.$global.board_selector.sortby,
+        boardOrderBy: (this.$global.board_selector && this.$global.board_selector.sortby) ? this.$global.board_selector.sortby : 'name',
         installedBoard: [],
         localBoards: {},
         onlineBoards: {},
@@ -486,11 +490,11 @@
       changeBoard: async function(boardInfo) {
         this.boardDialog = false;
         const res = await this.$dialog.confirm({
-          text: "Changing board will clear your workspace. please confirm.",
-          title: "Warning",
+          text: "Mudando de placa irá limpar seu espaço de trabalho. por favor, confirme.",
+          title: "Aviso",
           actions: [
-            { text: "Confirm", key: "confirm" },
-            { text: "Cancel", key: "cancel", color: "red darken-1" }
+            { text: "Confirmar", key: "confirm" },
+            { text: "Cancelar", key: "cancel", color: "red darken-1" }
           ]
         });
         if (res) {
@@ -523,12 +527,12 @@
       },
       installOnlineBoard: async function(boardInfo) {
         const res = await this.$dialog.confirm({
-          text: "Do you really want to install " + boardInfo.title + "?",
-          title: "Warning"
+          text: "Você realmente deseja instalar " + boardInfo.title + "?",
+          title: "Aviso"
         });
         if (res === true) {
           boardInfo.status = "DOWNLOAD";
-          this.statusText = "Downloading";
+          this.statusText = "Baixando";
           this.statusProgress = 0;
           bm.installOnlineBoard(boardInfo, progress => {
             //{process : 'board', status : 'DOWNLOAD', state:state }
@@ -538,12 +542,12 @@
                 boardInfo.status = "DOWNLOAD";
               }
               //when download just show to text
-              this.statusText = `Downloading ... ${util.humanFileSize(
+              this.statusText = `Baixando ... ${util.humanFileSize(
                 progress.state.size.transferred
-              )} at ${(progress.state.speed / 1000.0 / 1000.0).toFixed(2)}Mbps`;
+              )} a ${(progress.state.speed / 1000.0 / 1000.0).toFixed(2)}Mbps`;
             } else if (progress.status === "UNZIP") {
               boardInfo.status = "UNZIP";
-              this.statusText = `Unzip file ${progress.state.percentage}%`;
+              this.statusText = `Descompactando arquivo ${progress.state.percentage}%`;
               this.statusProgress = progress.state.percentage;
             }
           })
@@ -565,7 +569,7 @@
                 });
             })
             .catch(err => {
-              this.statusText = `Error : ${err}`;
+              this.statusText = `Erro : ${err}`;
               boardInfo.status = "ERROR";
               setTimeout(() => {
                 boardInfo.status = "READY";
@@ -576,11 +580,11 @@
       },
       removeBoard: async function(boardInfo) {
         const res = await this.$dialog.confirm({
-          text: "Do you really want to remove " + boardInfo.title + "?",
-          title: "Warning"
+          text: "Você realmente deseja remover " + boardInfo.title + "?",
+          title: "Aviso"
         });
         if (res === true) {
-          console.log("removing board : " + boardInfo.name);
+          console.log("removendo placa : " + boardInfo.name);
           bm.removeBoard(boardInfo)
             .then(() => {
               bm.clearListedBoard();
@@ -597,37 +601,37 @@
                 });
             })
             .catch(err => {
-              console.log("Error : cannot remove board");
+              console.log("Erro : não foi possível remover a placa");
               console.log(err);
             });
         }
       },
       updateBoard: async function(boardInfo) {
         const res = await this.$dialog.confirm({
-          text: "Do you want to update " + boardInfo.title,
-          title: "Warning"
+          text: "Você deseja atualizar " + boardInfo.title + "?",
+          title: "Aviso"
         });
         if (res === true) {
           let b = boardInfo;
           let st = b.status;
           bm.backupBoard(boardInfo)
             .then(() => {
-              console.log("update board : " + boardInfo.name);
+              console.log("atualizando placa : " + boardInfo.name);
               b.status = "DOWNLOAD";
-              this.statusText = "Downloading";
+              this.statusText = "Baixando";
               this.statusProgress = 0;
               return bm.installOnlineBoard(boardInfo, progress => {
                 //{process : 'board', status : 'DOWNLOAD', state:state }
                 if (progress.status === "DOWNLOAD") {
                   //when download just show to text
-                  this.statusText = `Downloading ... ${util.humanFileSize(
+                  this.statusText = `Baixando ... ${util.humanFileSize(
                     progress.state.size.transferred
-                  )} at ${(progress.state.speed / 1000.0 / 1000.0).toFixed(
+                  )} a ${(progress.state.speed / 1000.0 / 1000.0).toFixed(
                     2
                   )}Mbps`;
                 } else if (progress.status === "UNZIP") {
                   b.status = "UNZIP";
-                  this.statusText = `Unzip file ${progress.state.percentage}%`;
+                  this.statusText = `Descompactando arquivo ${progress.state.percentage}%`;
                   this.statusProgress = progress.state.percentage;
                 }
               });
@@ -656,7 +660,7 @@
             })
             .catch(err => {
               console.error(err);
-              this.statusText = `Error : ${err}`;
+              this.statusText = `Erro : ${err}`;
               b.status = "ERROR";
               bm.restoreBoard(boardInfo).then(() => {});
               setTimeout(() => {
@@ -675,11 +679,11 @@
           // user cancel
           return;
         }
-        this.$dialog.notify.info("Please wait...");
+        this.$dialog.notify.info("Por favor, aguarde...");
         bm.publishBoard(res)
           .then(_ => {
             this.$dialog.notify.success(
-              "Added your board success, please refresh again"
+              "Placa adicionada com sucesso, por favor, atualize novamente"
             );
           })
           .catch(err => {
@@ -687,7 +691,7 @@
               this.$dialog.notify.error(err);
             } else {
               this.$dialog.notify.error(
-                "Error something went wrong, please check the log"
+                "Algo deu errado, por favor, verifique o log"
               );
             }
             console.error(err);
@@ -697,13 +701,25 @@
     mounted() {
       mother = this;
       if (this.$refs.scrollbar) {
-        this.$refs.scrollbar.scrollbar.addListener(this.onScroll);
+        try {
+          // guard: SmoothScrollbar exposes .scrollbar with addListener in our stub
+          if (this.$refs.scrollbar.scrollbar && this.$refs.scrollbar.scrollbar.addListener) {
+            this.$refs.scrollbar.scrollbar.addListener(this.onScroll);
+          } else if (this.$refs.scrollbar.addEventListener) {
+            // fallback to native scroll listener on container element
+            this.$refs.scrollbar.addEventListener('scroll', this.onScroll);
+          }
+        } catch(e) {}
       }
     },
-    destroyed() {
-      if (this.$refs.scrollbar) {
-        this.$refs.scrollbar.scrollbar.removeListener(this.onScroll);
-      }
+    unmounted() {
+      try {
+        if (this.$refs.scrollbar && this.$refs.scrollbar.scrollbar && this.$refs.scrollbar.scrollbar.removeListener) {
+          this.$refs.scrollbar.scrollbar.removeListener(this.onScroll);
+        } else if (this.$refs.scrollbar && this.$refs.scrollbar.removeEventListener) {
+          this.$refs.scrollbar.removeEventListener('scroll', this.onScroll);
+        }
+      } catch(e) {}
     },
     watch: {
       boardDialog: async function(val) {

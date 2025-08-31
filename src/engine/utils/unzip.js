@@ -1,8 +1,9 @@
-const path = require("path");
-const fs = require("fs");
-const Transform = require("stream").Transform;
-const yauzl = require('yauzl');
-var concat = require('concat-stream')
+// Web-only stub: unzip não suportado no navegador
+const path = { resolve(p){ return p; }, join(){ return Array.from(arguments).join('/'); }, dirname(p){ return p ? p.split('/').slice(0,-1).join('/') : ''; } };
+const fs = { mkdir(){}, stat(){}, symlink(){}, createWriteStream(){ return { on(){}, pipe(){ return this; } }; } };
+const Transform = function(){};
+const yauzl = null;
+var concat = function(){};
 var _0777 = parseInt('0777', 8);
 
 
@@ -40,6 +41,10 @@ function mkdirp (p, cb,made) {
 
 function unzip(zipPath, opts, fcb){
   return new Promise((resolve,reject)=> {
+    if (!yauzl) {
+      reject('unzip not available in web');
+      return;
+    }
     yauzl.open(zipPath, {lazyEntries: true}, (err, zipfile) => {
       var lastProgress = 0;
       if (err) reject(err);

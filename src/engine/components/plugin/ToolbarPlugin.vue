@@ -7,8 +7,8 @@
             <span>Plugin Manager</span>
         </v-tooltip>
         <v-dialog v-model="pluginDialog" max-width="70%" max-height="80%" scrollable persistent>
-            <v-card>
-                <v-card-title>
+            <v-card class="rounded-xl bg-[var(--kb-surface-2)] text-gray-200 ring-1 ring-white/10">
+                <v-card-title class="text-lg font-semibold">
                     <span class="headline">Plugin Manager</span>
                     <v-spacer class="hidden-xs-only"></v-spacer>
                     <v-text-field
@@ -27,7 +27,7 @@
                         <v-btn slot="activator" icon>
                             <v-icon>filter_list</v-icon>
                         </v-btn>
-                        <v-card class="filter" max-width=350>
+                        <v-card class="filter rounded-lg bg-[var(--kb-surface)] ring-1 ring-white/10" max-width=350>
                             <v-card-title class="subheading">Filter</v-card-title>
                             <v-divider></v-divider>
                             <v-card-text>
@@ -56,15 +56,16 @@
                                     <v-list-tile-action>
                                         <v-item-group multiple v-model="filter.categories.selected">
                                             <v-item v-for="(data,index) in filter.categories.name" :key="index">
-                                                <v-chip
-                                                        slot-scope="{active,toggle}"
-                                                        :selected="active"
-                                                        @click="toggle"
-                                                        :color="active ? 'primary' : ''"
-                                                        :text-color="active ? 'white' : ''"
-                                                >
-                                                    {{data}}
-                                                </v-chip>
+                                                <template v-slot="{ active, toggle }">
+                                                    <v-chip
+                                                            :selected="active"
+                                                            @click="toggle"
+                                                            :color="active ? 'primary' : ''"
+                                                            :text-color="active ? 'white' : ''"
+                                                    >
+                                                        {{data}}
+                                                    </v-chip>
+                                                </template>
                                             </v-item>
                                         </v-item-group>
                                     </v-list-tile-action>
@@ -80,14 +81,14 @@
                 </v-card-title>
                 <v-divider></v-divider>
                 <smooth-scrollbar ref="scrollbar">
-                    <v-card-text>
+                    <v-card-text class="px-2 pb-4">
                         <v-subheader>
                             Installed
                         </v-subheader>
                         <div>
                             <v-list three-line>
-                                <template v-for="(data, index) in localPlugin">
-                                    <v-list-tile :key="data.name" avatar class="list-title">
+                                <template v-for="(data, index) in localPlugin" :key="data.name">
+                                    <v-list-tile avatar class="list-title rounded-lg hover:bg-white/5 transition">
                                         <v-list-tile-avatar size="60px">
                                             <template v-if="data.category.image">
                                                 <v-img contain v-if="data.category.image.startsWith('http') === true"
@@ -116,7 +117,7 @@
                                         <v-list-tile-action>
                                             <v-btn v-if="data.status != 'UPDATABLE'"
                                                    icon fab small dark
-                                                   class="red"
+                                                   class="red rounded-md"
                                                    :disabled="data.status != 'READY'"
                                                    @click="removePlugin(data.category.name)"
                                             >
@@ -131,7 +132,7 @@
                                             <template v-else>
                                                 <v-btn
                                                         icon fab small dark
-                                                        class="green"
+                                                        class="green rounded-md"
                                                         @click="updatePlugin(data.category.name)"
                                                 >
                                                     <v-icon>fa-retweet</v-icon>
@@ -141,7 +142,7 @@
                                         </v-list-tile-action>
                                         <p v-if="data.status != 'READY'" class="text-info-status">{{statusText}}</p>
                                     </v-list-tile>
-                                    <v-divider :key="index" inset></v-divider>
+                                    <v-divider inset></v-divider>
                                 </template>
                             </v-list>
                         </div>
@@ -166,11 +167,10 @@
                             </v-flex>
 
                             <v-list three-line v-else-if="onlinePluginStatus != 'wait'">
-                                <template v-for="(data, index) in onlinePlugin">
+                                <template v-for="(data, index) in onlinePlugin" :key="data.name">
                                     <v-list-tile
-                                            :key="data.name"
                                             avatar
-                                            class="list-title"
+                                            class="list-title rounded-lg hover:bg-white/5 transition"
                                     >
                                         <v-list-tile-avatar size="60px">
                                             <v-img contain v-if="data.image.startsWith('http') === true"
@@ -191,7 +191,7 @@
                                         <v-list-tile-action>
                                             <v-btn
                                                     icon fab small dark
-                                                    class="primary"
+                                                    class="primary rounded-md"
                                                     :disabled="data.status !== 'READY'"
                                                     @click="installOnlinePlugin(data.name)"
                                             >
@@ -207,7 +207,7 @@
                                         </v-list-tile-action>
                                         <p v-if="data.status !== 'READY'" class="text-info-status">{{statusText}}</p>
                                     </v-list-tile>
-                                    <v-divider :key="index" inset></v-divider>
+                                    <v-divider inset></v-divider>
                                 </template>
                             </v-list>
                         </div>
@@ -216,9 +216,9 @@
                 <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-btn v-if="$global.setting.devMode === true" class="btn-primary" flat
-                           @click.native="publishNewPlugin">Publish your plugin
+                           @click="publishNewPlugin">Publish your plugin
                     </v-btn>
-                    <v-btn class="btn-danger" flat @click.native="pluginDialog = false">Close</v-btn>
+                    <v-btn class="btn-danger" flat @click="pluginDialog = false">Close</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -229,9 +229,10 @@
   import SmoothScrollbar from "../../views/widgets/list/SmoothScrollbar";
   import PluginPublishForm from "./PluginPublishForm";
 
-  const { shell } = require("electron");
-  const fs = require("fs");
-  const request = require("request-promise");
+  const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+  let shell = { openExternal: (url)=>{ try{ window.open(url, '_blank'); }catch(e){} } };
+  try { if (isElectron) { shell = require("electron").shell; } } catch(e) {}
+  let fs = null; try { if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
 
   import util from "@/engine/utils";
   import pm from "@/engine/PluginManager";
@@ -573,10 +574,12 @@
         this.$refs.scrollbar.scrollbar.addListener(this.onScroll);
       }
     },
-    destroyed() {
-      if (this.$refs.scrollbar) {
-        this.$refs.scrollbar.scrollbar.removeListener(this.onScroll);
-      }
+    unmounted() {
+      try {
+        if (this.$refs.scrollbar && this.$refs.scrollbar.scrollbar && this.$refs.scrollbar.scrollbar.removeListener) {
+          this.$refs.scrollbar.scrollbar.removeListener(this.onScroll);
+        }
+      } catch(e) {}
     },
     watch: {
       pluginDialog: function(val) {

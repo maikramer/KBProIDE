@@ -1,0 +1,1 @@
+(global["webpackChunkkbide"]=global["webpackChunkkbide"]||[]).push([[9324],{79324:()=>{}}]);

@@ -2,19 +2,19 @@
     <div v-if="$global.setting.devMode === true">
         <div class="container-raw-code" v-if="$global.editor.mode === 2">
             <span class="f-manjari-b text-white">RAW CODE</span>
-            <toggle-button v-model="$global.editor.rawCodeMode"
-                           :labels="{checked: 'ON', unchecked: 'OFF'}"/>
+            <label class="text-white" style="display:flex;align-items:center;gap:6px">
+              <input type="checkbox" v-model="$global.editor.rawCodeMode"/>
+              <span>{{ $global.editor.rawCodeMode ? 'ON' : 'OFF' }}</span>
+            </label>
         </div>
     </div>
-</template>
+    </template>
 
 <script>
-  import {ToggleButton} from "vue-js-toggle-button";
+  // Replace legacy vue-js-toggle-button with a native checkbox for Vue 3
   export default {
     name: "RawCodeToggle",
-    components: {
-      "ToggleButton": ToggleButton
-    },
+    components: {},
   };
 </script>
 

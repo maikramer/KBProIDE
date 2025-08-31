@@ -24,9 +24,24 @@
     <script src="/static/js/Tone.js"></script>
 
     <script>
-      const AppVersion = require('electron').remote.app.getVersion();
-      document.title += '  v' + AppVersion + ' | kbide.org';
-      Tone.start();
+      (async function(){
+        try {
+          const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+          if (isElectron) {
+            const { ipcRenderer } = require('electron');
+            const AppVersion = await ipcRenderer.invoke('get-app-version');
+            if (AppVersion) {
+              document.title += '  v' + AppVersion + ' | kbide.org';
+            }
+          }
+        } catch (e) {}
+        try {
+          document.addEventListener('click', function once(){
+            try { Tone.start(); } catch(e) {}
+            document.removeEventListener('click', once);
+          });
+        } catch (e) {}
+      })();
     </script>
     <style>
       /* hidden scroll bar */
@@ -46,7 +61,7 @@
         font-size: 24px;
       }
     </style>
-    <link rel="shortcut icon" href="/static/m.png" type="image/x-icon">
+    <link rel="icon" href="/icon.png" type="image/png">
   </head>
   <body>
     <noscript>

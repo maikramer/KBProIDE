@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KBIDE</title><link rel="dns-prefetch" href="https://fonts.gstatic.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link rel="stylesheet" href="static/css/ui-custom.css"><script src="/static/vue.js"></script><script src="/static/js/Tone.js"></script><script>(async function(){
+        try {
+          const { ipcRenderer } = require('electron');
+          const AppVersion = await ipcRenderer.invoke('get-app-version');
+          if (AppVersion) {
+            document.title += '  v' + AppVersion + ' | kbide.org';
+          }
+        } catch (e) {}
+        Tone.start();
+      })();</script><style>/* hidden scroll bar */
+      /*::-webkit-scrollbar {
+          width: 0px;
+          background: transparent;
+      }*/
+
+      html{
+        overflow-x : hidden !important;
+        overflow-y : hidden !important;
+      }
+      .v-icon {
+        font-size: inherit;
+      }
+      .material-icons {
+        font-size: 24px;
+      }</style><link rel="shortcut icon" href="/static/m.png" type="image/x-icon"><script defer="defer" src="/js/chunk-vendors.c8d5103f.js"></script><script defer="defer" src="/js/app.1b16d01c.js"></script><link href="/css/chunk-vendors.1edceee5.css" rel="stylesheet"><link href="/css/app.d80beed8.css" rel="stylesheet"><!--[if IE]><link rel="icon" type="image/svg+xml" href="/img/icons/favicon.svg"><![endif]--><link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#4DBA87"><meta name="apple-mobile-web-app-capable" content="no"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="kbide"><link rel="apple-touch-icon" href="/img/icons/apple-touch-icon-152x152.png"><link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#4DBA87"><meta name="msapplication-TileImage" content="/img/icons/msapplication-icon-144x144.png"><meta name="msapplication-TileColor" content="#000000"></head><body><noscript><strong>We're sorry but vma doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id="app"><div style="background-color: #ffffff; display : flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 100vh;"><p class="loading">Loading</p></div></div></body></html>

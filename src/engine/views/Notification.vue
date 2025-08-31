@@ -105,7 +105,7 @@ export default {
     mounted(){
         
     },
-    destroyed() {
+    unmounted() {
 
     },
     watch : {

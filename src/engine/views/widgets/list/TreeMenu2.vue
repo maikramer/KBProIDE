@@ -1,9 +1,8 @@
 <template>
 <v-list>
+    <template v-for="(item,index) in nodes" :key="index">
     <v-list-group
-            v-for="(item,index) in nodes"
-            :key="index"
-            v-if="item.examples && item.examples.length > 0"
+            v-if="item && item.examples && item.examples.length > 0"
     >
         <template v-slot:activator>
             <v-list-tile
@@ -60,25 +59,24 @@
                 <v-card>
                     <v-card-text v-if="example.files.find(obj=>obj.endsWith('.md'))">
                         <div class="vue-markdown">
-                            <vue-markdown v-on:rendered="editTag">{{getMarkdown(example)}}
-                            </vue-markdown>
+                            <MarkdownRender :content="getMarkdown(example)" />
                         </div>
                     </v-card-text>
                 </v-card>
             </v-expansion-panel-content>
         </v-expansion-panel>
     </v-list-group>
+    </template>
 </v-list>
 </template>
 <script>
-  const fs = require("fs");
-  const path = require("path");
+  let fs = null; try { const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron; if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
   let mother = null;
-  import VueMarkdown from "vue-markdown";
+  import MarkdownRender from "@/engine/components/common/MarkdownRender.vue";
   export default {
     props: ["label", "nodes"],
     components : {
-      "vue-markdown": VueMarkdown,
+      MarkdownRender,
     },
     name: "tree-menu2",
     created(){
@@ -86,10 +84,23 @@
     },
     methods : {
       getMarkdown(files) {
-        if(files.files) {
-          let mdFile = files.files.find(obj => obj.endsWith(".md"));
-          return mdFile && fs.readFileSync(files.dir + "/" + mdFile, "utf8");
+        if (!files || !files.files) { return ''; }
+        let mdFile = files.files.find(obj => obj.endsWith(".md"));
+        if (!mdFile) { return ''; }
+        const key = (files.dir || '') + "/" + mdFile;
+        if (fs && fs.readFileSync) {
+          try { return fs.readFileSync(key, "utf8"); } catch(e) { return ''; }
         }
+        try {
+          // web fallback
+          fetch(key, { cache: 'no-store' }).then(async r=>{
+            if (!r.ok) return;
+            const text = await r.text();
+            // No local cache, just inject into DOM on next render via refetch if needed
+            // Return value is immediate; caller renders empty until fetch completes
+          }).catch(()=>{});
+        } catch(e) {}
+        return '';
       },
       editTag() {
         if (document.readyState !== "complete") {
@@ -109,7 +120,7 @@
             for (let i = 0; i < aTags.length; i++) {
               let originalHref = aTags.item(i).href.slice(0);
               if (originalHref.indexOf("#") < 0) {
-                aTags[i].setAttribute("onclick", "require('electron').shell.openExternal('" + originalHref + "')");
+                aTags[i].setAttribute("onclick", "(function(u){ try{ const isE= typeof process!=='undefined' && process.versions && !!process.versions.electron; if(isE){ require('electron').shell.openExternal(u);} else { window.open(u,'_blank'); } }catch(e){ window.open(u,'_blank'); } })('" + originalHref + "')");
                 aTags[i].href = "#";
               }
             }

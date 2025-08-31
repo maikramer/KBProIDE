@@ -35,8 +35,6 @@
     </v-footer>
 </template>
 <script>
-import { stat } from 'fs';
-import { setTimeout } from 'timers';
 var mother = null;
 export default {
     name: 'app-footer',
@@ -59,7 +57,7 @@ export default {
                 //this.$global.editor.Editor.model.onDidChangeContent(this.updateEditorStatus);
                 this.$global.editor.Editor.onDidChangeCursorPosition(this.updateEditorStatus,'',true);
             }else{
-                setTimeout(this.mountCm,1000);
+                window.setTimeout(this.mountCm,1000);
             }
         },
         mountBly : function(){
@@ -67,7 +65,7 @@ export default {
                 this.workspace = this.$global.editor.workspace;
                 this.workspace.addChangeListener(this.updateBlock);
             }else{
-                setTimeout(this.mountBly,1000);
+                window.setTimeout(this.mountBly,1000);
             }
         },
         updateEditorStatus : function(e){

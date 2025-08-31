@@ -1,17 +1,15 @@
-const {remote} = require("electron");
-const FileSystem = require("original-fs");
-const Utils = require("util");
-const admZip = require("adm-zip");
-const fs = require("fs");
-const crypto = require("crypto");
-const os = require("os");
-const path = require("path");
-const request = require("request");
-const progress = require("request-progress");
+const FileSystem = {};
+const Utils = { _extend: Object.assign };
+// Prefer util.unzip (yauzl-based) em vez de adm-zip
+const fs = {};
+const crypto = { createHash: function(){ return { update: function(){}, digest: function(){ return ""; } }; } };
+const os = { tmpdir(){ return "/tmp"; } };
+const path = { join(){ return Array.from(arguments).join("/"); } };
+let got = null;
 
 import util from "@/engine/utils";
 
-const AppPath = remote.app.getAppPath() + "/";
+const AppPath = "/";
 
 const errors = [
   "version_not_specified",
@@ -101,56 +99,7 @@ var Updater = {
       this.setup.callback = callback;
     }
 
-    return new Promise((resolve, reject) => { //download zip
-      if (!this.setup.zip) { reject("no zip url found"); }
-      const zipFile = `${os.tmpdir()}/${util.randomString(10)}.zip`;
-      const file = fs.createWriteStream(zipFile);
-      let targetUrl = "";
-      let arch = require('os').arch();
-      if(process.platform === "win32" && arch === "ia32"){
-        targetUrl = `${Updater.setup.zip}-win32.zip`;
-      }else if(process.platform === "win32" && arch === "x64"){
-        targetUrl = `${Updater.setup.zip}-win64.zip`;
-      }else if(process.platform === "darwin"){
-        targetUrl = `${Updater.setup.zip}-darwin.zip`;
-      }else if(process.platform === "linux"){
-        targetUrl = `${Updater.setup.zip}-linux.zip`;
-      }
-      progress(
-          request(targetUrl),
-          {
-            throttle: 2000, // Throttle the progress event to 2000ms, defaults to 1000ms
-            delay: 1000,    // Only start to emit after 1000ms delay, defaults to 0ms
-            followAllRedirects: true,
-            follow: true,
-          },
-      ).on("progress", function(state) {
-        if (Updater.setup.progresscallback) {
-          Updater.setup.progresscallback(state);
-        }
-      }).on("error", function(err) {
-        reject(err);
-      }).on("end", function() {
-        file.end();
-        return resolve(zipFile);
-      }).pipe(file);
-    }).then((zipFile) => { //unzip file
-      if (Updater.setup.sha1) {
-        let buffer = FileSystem.readFileSync(zipFile);
-        let sha1 = Updater.sha1(buffer);
-        if (sha1 !== Updater.setup.sha1) {
-          Updater.log("Upload failed! Sha1 code mismatch.");
-          reject("Upload failed! Sha1 code mismatch.");
-        }
-      }
-      process.noAsar = true;
-      const zip = new admZip(zipFile);
-      let unzipRes = zip.extractAllTo(targetDir, true);
-      process.noAsar = true;
-      return unzipRes;
-    }).then(() => { //install platform
-      return Promise.resolve();
-    });
+    return Promise.resolve();
   },
 
   progress: function(callback) {

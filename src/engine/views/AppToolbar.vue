@@ -15,7 +15,7 @@
         <img v-on="on" src="/static/logo/KBIDE.png" height="45"
              alt="Problem? report me at fb.com/comdet"
              class="mr-3"
-             style="border-radius: 8px; background-color: #ffffffa8; //margin-top: 4px;">
+             style="border-radius: 8px; background-color: #ffffffa8;">
       </template>
       <span>KBIDE by MakerAsia</span>
     </v-tooltip>
@@ -24,7 +24,7 @@
         <img v-on="on" src="/static/logo/kidcom_128.png" height="45"
              alt="KidBright Community"
              class="mr-2"
-             style="border-radius: 8px; background-color: rgba(255, 255, 255, 0.8); //margin-top: 4px;">
+             style="border-radius: 8px; background-color: rgba(255, 255, 255, 0.8);">
       </template>
       <span>KidBright Community</span>
     </v-tooltip>
@@ -106,12 +106,13 @@ import util from '@/engine/utils';
 import cm from '@/engine/ComponentManager';
 import bm from '@/engine/BoardManager';
 import pm from '@/engine/PackageManager';
+import { defineAsyncComponent } from 'vue';
 let mother = null;
 export default {
   name: 'app-toolbar',
   components: {
-    notification : ()=> import("@/engine/views/Notification"),
-    AsyncComponent : ()=> import("@/engine/AsyncComponent"),
+    notification : defineAsyncComponent(()=> import("@/engine/views/Notification")),
+    AsyncComponent : defineAsyncComponent(()=> import("@/engine/AsyncComponent")),
   },
   data:() => ({
     toolbars : [],
@@ -141,20 +142,20 @@ export default {
     processToolbar : async function(t=this){
       t.toolbarComp = [];
       t.actionbarComp = [];
-      let boardActionBar = await bm.listActionbar(Vue.prototype.$global.board.board);
-      let boardToolbar = await bm.listToolbar(Vue.prototype.$global.board.board);
-      for(let packageName in Vue.prototype.$global.board.package){
-        t.actionbarComp.push({info : Vue.prototype.$global.board.package[packageName], name : packageName, comp : boardActionBar[packageName]});
-        t.toolbarComp.push({info : Vue.prototype.$global.board.package[packageName], name : packageName,comp : boardToolbar[packageName] });
+      let boardActionBar = await bm.listActionbar(this.$global.board.board);
+      let boardToolbar = await bm.listToolbar(this.$global.board.board);
+      for(let packageName in this.$global.board.package){
+        t.actionbarComp.push({info : this.$global.board.package[packageName], name : packageName, comp : boardActionBar[packageName]});
+        t.toolbarComp.push({info : this.$global.board.package[packageName], name : packageName,comp : boardToolbar[packageName] });
       }
     },
     processAppToolbar : async function(t=this){
       let t1 = [],t2 = [];
       let appActionbar = await pm.listActionbar();
       let appToolbar = await pm.listToolbar();
-      for(let packageName in Vue.prototype.$global.packages){
-        t1.push({info : Vue.prototype.$global.packages[packageName], name : packageName, comp : appActionbar[packageName]});
-        t2.push({info : Vue.prototype.$global.board.package[packageName], name : packageName,comp : appToolbar[packageName] });
+      for(let packageName in this.$global.packages){
+        t1.push({info : this.$global.packages[packageName], name : packageName, comp : appActionbar[packageName]});
+        t2.push({info : this.$global.board.package[packageName], name : packageName,comp : appToolbar[packageName] });
       }
       t.appActionbarComp = t1;
       t.appToolbarComp = t2;

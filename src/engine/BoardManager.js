@@ -2,17 +2,15 @@ import util from "@/engine/utils";
 import pfm from "@/engine/PlatformManager";
 //import axios from 'axios';
 
-const { promises: fs } = require("fs");
-const rfs = require("fs");
+let fs = null; let rfs = null; try { if (typeof process !== 'undefined' && process.versions && process.versions.electron) { fs = require("fs").promises; rfs = require("fs"); } } catch (e) { fs = null; rfs = null; }
 
-const fileExists = async path => !!(await fs.stat(path).catch(e => false));
+const fileExists = async path => { if (!fs) return false; return !!(await fs.stat(path).catch(e => false)); };
 
-const os = require("os");
-const path = require("path");
-const request = require("request");
-const progress = require("request-progress");
+let os = null; try { if (typeof process !== 'undefined' && process.versions && process.versions.electron) { os = require("os"); } } catch(e) { os = null; }
+let path = null; try { if (typeof process !== 'undefined' && process.versions && process.versions.electron) { path = require("path"); } } catch(e) { path = null; }
+let got = null;
 //const db = Vue.prototype.$db;
-const request_promise = require("request-promise");
+const request_promise = got ? got.default || got : null;
 
 let listedBoards = [];
 let listedPackages = {};
@@ -20,6 +18,7 @@ let listedPackagesBoard = "";
 
 const listBoard = async function() {
   let context = [];
+  if (!fs) { return context; }
   let dirs = await fs.readdir(util.boardDir);
   for(let i in dirs){
     let dir = `${util.boardDir}/${dirs[i]}`;
@@ -72,33 +71,35 @@ const listPackage = async function(boardName, includePlatform = true) {
   }
   if (includePlatform) {
     let targetBoard = (await boards()).find(obj => obj.name === boardName);
-    let platformName = targetBoard.platform;
-    let platformPackageDir = `${util.platformDir}/${platformName}/package`;
-    if (await fileExists(platformPackageDir)) {
-      let platformPackageName = await fs.readdir(platformPackageDir);
-      for(let i in platformPackageName){
-        let element = platformPackageName[i];
-        let fullPathPackage = `${platformPackageDir}/${element}`;
-        let configFile = `${fullPathPackage}/config.js`;
-        let packageJsFile = `${fullPathPackage}/dist/${element}.umd.js`;
-        if ((await fs.lstat(fullPathPackage)).isFile()) {// skip file
-          continue;
-        }
-        if (!await fileExists(configFile)) {//package must contain config.js
-          continue;
-        }
-        if (!await fileExists(packageJsFile)) {//package must contain js umd file
-          continue;
-        }
-        if (!(element in context)) {
-          context[element] = {};
-          try {
-            context[element]["config"] = util.requireFunc(configFile);
-            context[element]["dir"] = fullPathPackage;
-            context[element]["js"] = packageJsFile;
-            context[element]["scope"] = "platform";
-          } catch (error) {
-            console.log("connot import config : " + fullPathPackage);
+    let platformName = targetBoard && targetBoard.platform;
+    if (platformName) {
+      let platformPackageDir = `${util.platformDir}/${platformName}/package`;
+      if (await fileExists(platformPackageDir)) {
+        let platformPackageName = await fs.readdir(platformPackageDir);
+        for(let i in platformPackageName){
+          let element = platformPackageName[i];
+          let fullPathPackage = `${platformPackageDir}/${element}`;
+          let configFile = `${fullPathPackage}/config.js`;
+          let packageJsFile = `${fullPathPackage}/dist/${element}.umd.js`;
+          if ((await fs.lstat(fullPathPackage)).isFile()) {// skip file
+            continue;
+          }
+          if (!await fileExists(configFile)) {//package must contain config.js
+            continue;
+          }
+          if (!await fileExists(packageJsFile)) {//package must contain js umd file
+            continue;
+          }
+          if (!(element in context)) {
+            context[element] = {};
+            try {
+              context[element]["config"] = util.requireFunc(configFile);
+              context[element]["dir"] = fullPathPackage;
+              context[element]["js"] = packageJsFile;
+              context[element]["scope"] = "platform";
+            } catch (error) {
+              console.log("connot import config : " + fullPathPackage);
+            }
           }
         }
       }
@@ -121,7 +122,9 @@ const listPackage = async function(boardName, includePlatform = true) {
 const listOnlineBoard = function(query)
 {
   return new Promise((resolve, reject) => {
-    Vue.prototype.$db2.getItems("boards", query).then((data, meta) => {
+    const api = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db2) || null;
+    if (!api || typeof api.getItems !== 'function') { reject('db2 unavailable'); return; }
+    api.getItems("boards", query).then((data, meta) => {
       resolve({ boards: data.data, meta: data.meta });
     }).catch(err => {
       console.error("list online board error : " + err);
@@ -144,22 +147,12 @@ const installOnlineBoard = function(info, cb) {
     let zipUrl = info.git + "/archive/master.zip";
     let zipFile = os.tmpdir() + "/" + util.randomString(10) + ".zip";
     let file = rfs.createWriteStream(zipFile);
-    progress(
-      request(zipUrl),
-      {
-        throttle: 2000, // Throttle the progress event to 2000ms, defaults to 1000ms
-        delay: 1000,    // Only start to emit after 1000ms delay, defaults to 0ms
-        followAllRedirects: true,
-        follow: true
-      }
-    ).on("progress", function(state) {
-      cb && cb({ process: "board", status: "DOWNLOAD", state: state });
-    }).on("error", function(err) {
-      reject(err);
-    }).on("end", function() {
-      file.end();
-      return resolve(zipFile);
-    })
+    got.stream(zipUrl)
+      .on("downloadProgress", p => {
+        cb && cb({ process: "board", status: "DOWNLOAD", state: { percent: p.percent, transferred: p.transferred, total: p.total } });
+      })
+      .on("error", err => reject(err))
+      .on("end", () => { file.end(); resolve(zipFile); })
       .pipe(file);
   }).then((zipFile) => { //unzip file
     return util.unzip(zipFile, { dir: util.boardDir }, p => {
@@ -250,7 +243,9 @@ const publishBoard = function(url) {
         json = eval(res);
         if (json.name) { //search if existing
           let query = { filter: { name: { eq: json.name } } };
-          return Vue.prototype.$db2.getItems("boards", query).then((data, meta) => {
+          const api2 = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db2) || null;
+          if (!api2 || typeof api2.getItems !== 'function') { return false; }
+          return api2.getItems("boards", query).then((data, meta) => {
             return data.data && data.data.length === 1 && data.data[0];
           }).catch(err => {
             console.error("list online plugin error : " + err);
@@ -286,7 +281,9 @@ const publishBoard = function(url) {
               json.platform = [json.platform]
             }
           }
-          Vue.prototype.$db_dev.createItem("boards", json)
+          const devApi = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db_dev) || null;
+          if (!devApi || typeof devApi.createItem !== 'function') { throw new Error('db_dev unavailable'); }
+          devApi.createItem("boards", json)
             .then(res => {
               //console.log(res);
               if (res) {

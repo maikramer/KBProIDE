@@ -1,11 +1,11 @@
 <template>
     <div id="appRoot">
         <template v-if="!$route.meta.public">
-            <v-app class="app" id="inspire">
+            <v-app class="app bg-[var(--kb-surface)] text-gray-200 min-h-screen" id="inspire">
                 <app-toolbar ref="toolbar" class="app--toolbar" v-on:created="createToolbar"></app-toolbar>
                 <v-content>
                     <!-- Page Header -->
-                    <div class="page-wrapper">
+                    <div class="page-wrapper bg-[var(--kb-surface)] text-gray-200">
                         <!-- screen divider (into 3 section page,rightTab,bottomTab) -->
                         <multipane @paneResizeStop="onResizePanel" class="multiplate-warper" layout="horizontal">
                             <!-- upper pane -->
@@ -18,17 +18,17 @@
                                     <router-view></router-view>
                                 </div>
                                 <!-- end -->
-                                <multipane-resizer v-if="$global.ui.rightTab.length > 0"></multipane-resizer>
+                                <multipane-resizer v-if="$global.ui.rightTab.length > 0" class="!bg-[var(--kb-border)]"></multipane-resizer>
                                 <!--right tab -->
                                 <div :style="[{ flexGrow: 1 }, ($global.ui.rightTab.length > 0 ? ({'min-width':'20%','display' : 'block'}) : ({'display' : 'none'}))]"
                                      class="pane">
 
                                     <v-tabs color="primary" dark ref="rtabs" slider-color="yellow"
-                                            v-model="$global.ui.rightTabModel">
+                                            v-model="$global.ui.rightTabModel" class="rounded-lg bg-[var(--kb-surface-2)] ring-1 ring-white/10 backdrop-blur">
                                         <draggable :options="{group: 'tab-group'}" class="v-tabs__container"
                                                    v-model="$global.ui.rightTab">
                                             <!-- tab header -->
-                                            <v-tab :href="`#rtab-${tab.name}`" :key="index"
+                                            <v-tab :href="`#rtab-${tab.name}`" :key="index" class="!text-gray-200 hover:!text-white"
                                                    v-for="(tab, index) in $global.ui.rightTab">
                                                 {{ tab.title }}
                                                 <v-btn @click="closeTab(tab.name)" class="close-tab-btn-control" icon
@@ -41,8 +41,8 @@
                                         <!-- tab body -->
                                         <v-tab-item :key="`rtab-${tab.name}`" :value="`rtab-${tab.name}`"
                                                     v-for="(tab, index) in $global.ui.rightTab">
-                                            <component v-if="!tab.component.startsWith('.')" :is="tab.component" :key="index"></component>
-                                            <async-component v-else :key='index' :target="tab.component"/>
+                                            <component v-if="!tab.component.startsWith('.')" :is="tab.component" :key="`rtab-comp-${tab.name}`"></component>
+                                            <async-component v-else-if="tab.component" :key="`rtab-async-${tab.name}`" :target="tab.component"/>
                                         </v-tab-item>
                                         <!-- end -->
                                     </v-tabs>
@@ -51,15 +51,15 @@
 
                             </multipane>
 
-                            <multipane-resizer v-if="$global.ui.bottomTab.length > 0"></multipane-resizer>
+                            <multipane-resizer v-if="$global.ui.bottomTab.length > 0" class="!bg-[var(--kb-border)]"></multipane-resizer>
 
                             <!--lower pane -->
                             <div class="bottom-tab" v-if="$global.ui.bottomTab.length > 0">
-                                <v-tabs color="primary" dark slider-color="yellow" v-model="$global.ui.bottomTabModel">
+                                <v-tabs color="primary" dark slider-color="yellow" v-model="$global.ui.bottomTabModel" class="rounded-t-lg bg-[var(--kb-surface-2)] ring-1 ring-white/10 backdrop-blur">
                                     <draggable :options="{group: 'tab-group'}" class="v-tabs__container"
                                                v-model="$global.ui.bottomTab">
                                         <!-- tab header -->
-                                        <v-tab :href="`#btab-${tab.name}`" :key="index"
+                                        <v-tab :href="`#btab-${tab.name}`" :key="index" class="!text-gray-200 hover:!text-white"
                                                v-for="(tab, index) in $global.ui.bottomTab">
                                             {{ tab.title }}
                                             <v-btn @click="closeTab(tab.name)" class="close-tab-btn-control" icon small>
@@ -71,8 +71,8 @@
                                     <!-- tab body -->
                                     <v-tab-item :key="`btab-${tab.name}`" :value="`btab-${tab.name}`"
                                                 v-for="(tab, index) in $global.ui.bottomTab">
-                                        <component v-if="!tab.component.startsWith('.')" :is="tab.component" :key="index"></component>
-                                        <async-component v-else :key='index' :target="tab.component"/>
+                                        <component v-if="!tab.component.startsWith('.')" :is="tab.component" :key="`btab-comp-${tab.name}`"></component>
+                                        <async-component v-else-if="tab.component" :key="`btab-async-${tab.name}`" :target="tab.component"/>
                                     </v-tab-item>
                                     <!-- end -->
                                 </v-tabs>
@@ -81,14 +81,14 @@
                     </div>
                 </v-content>
                 <!-- left drawer -->
-                <v-navigation-drawer class="setting-drawer" fixed hide-overlay left temporary
+                <v-navigation-drawer class="setting-drawer rounded-xl ring-1 ring-white/10 bg-[var(--kb-surface-2)] backdrop-blur" fixed hide-overlay left temporary
                                      v-model="$global.ui.leftDrawerComponent">
-                    <async-component :target="$global.ui.leftDrawerComponent"/>
+                    <async-component v-if="$global.ui.leftDrawerComponent" :target="$global.ui.leftDrawerComponent"/>
                 </v-navigation-drawer>
                 <!-- right drawer -->
-                <v-navigation-drawer class="setting-drawer" fixed hide-overlay right temporary
+                <v-navigation-drawer class="setting-drawer rounded-xl ring-1 ring-white/10 bg-[var(--kb-surface-2)] backdrop-blur" fixed hide-overlay right temporary
                                      v-model="$global.ui.rightDrawerComponent">
-                    <async-component :target="$global.ui.rightDrawerComponent"/>
+                    <async-component v-if="$global.ui.rightDrawerComponent" :target="$global.ui.rightDrawerComponent"/>
                 </v-navigation-drawer>
 
                 <app-footer></app-footer>
@@ -102,65 +102,65 @@
             </transition>
         </template>
         <v-snackbar
-                :bottom="$global.ui.snackbarConfig.y === 'bottom'"
+                :bottom="$global.ui.snackbarConfig.y === 'bottom' ? true : null"
                 :color="$global.ui.snackbarConfig.color"
-                :left="$global.ui.snackbarConfig.x === 'left'"
-                :multi-line="$global.ui.snackbarConfig.mode === 'multi-line'"
-                :right="$global.ui.snackbarConfig.x === 'right'"
+                :left="$global.ui.snackbarConfig.x === 'left' ? true : null"
+                :multi-line="$global.ui.snackbarConfig.mode === 'multi-line' ? true : null"
+                :right="$global.ui.snackbarConfig.x === 'right' ? true : null"
                 :timeout="$global.ui.snackbarConfig.timeout"
-                :top="$global.ui.snackbarConfig.y === 'top'"
-                :vertical="$global.ui.snackbarConfig.mode === 'vertical'"
+                :top="$global.ui.snackbarConfig.y === 'top' ? true : null"
+                :vertical="$global.ui.snackbarConfig.mode === 'vertical' ? true : null"
                 v-model="$global.ui.snackbarStatus"
         >
             {{ $global.ui.snackbarConfig.text }}
-            <v-btn @click.native="$global.ui.snackbarStatus = false" dark flat icon>
+            <v-btn @click="$global.ui.snackbarStatus = false" dark flat icon>
                 <v-icon>close</v-icon>
             </v-btn>
         </v-snackbar>
         <app-updater></app-updater>
         <v-dialog persistent v-model="firstUseDialog" max-width="450">
-            <v-card>
-                <v-card-title>
-                    <span class="headline">Welcome to KBIDE</span>
+            <v-card class="rounded-xl bg-[var(--kb-surface)] ring-1 ring-white/10">
+                <v-card-title class="text-gray-100 font-semibold">
+                    <span class="headline">Bem-vindo(a) ao KBIDE</span>
                 </v-card-title>
-                <v-card-text>
+                <v-card-text class="text-gray-300">
                     <p class="title">
-                        New IDE for everyone.
+                        Uma IDE para todos.
                     </p>
                     <p class="subtitle">
-                        It look like you just open this IDE for first time.
-                        There are some important features that you need to know in here.
-                        Let us introduce new features of KBIDE.<br/><br/>
+                        Parece que você abriu a IDE pela primeira vez.
+                        Há recursos importantes que você precisa conhecer aqui.
+                        Vamos apresentar as novidades do KBIDE.<br/><br/>
                     </p>
-                    <p style="color:red">*Note : 'Click' are disabled util the tour end.</p>
+                    <p style="color:red">*Nota: Cliques ficam desabilitados até o fim do tour.</p>
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-tooltip bottom>
                         <template v-slot:activator="{ on }">
-                            <v-btn v-on="on" color="blue darken-1" flat @click="skipTour">Skip it</v-btn>
+                            <v-btn v-on="on" color="blue darken-1" flat @click="skipTour" class="rounded-md !text-gray-200 hover:!text-white">Pular</v-btn>
                         </template>
-                        <span>You can start again in Help > IDE Tour</span>
+                        <span>Você pode iniciar de novo em Ajuda > Tour da IDE</span>
                     </v-tooltip>
-                    <v-btn color="blue darken-1" flat @click="startTour('en')">Start tour</v-btn>
-                    <v-btn color="blue darken-1" flat @click="startTour('th')">แสดงคำแนะนำภาษาไทย</v-btn>
+                    <v-btn color="blue darken-1" flat @click="startTour('en')" class="rounded-md !text-gray-200 hover:!text-white">Iniciar tour (EN)</v-btn>
+                    <v-btn color="blue darken-1" flat @click="startTour('th')" class="rounded-md !text-gray-200 hover:!text-white">Iniciar tour (TH)</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
         <v-dialog persistent v-model="endDialog" max-width="400">
-            <v-card>
-                <v-card-title>
+            <v-card class="rounded-xl bg-[var(--kb-surface)] ring-1 ring-white/10">
+                <v-card-title class="text-gray-100 font-semibold">
                     <span class="headline">{{endDialogTitle}}</span>
                 </v-card-title>
-                <v-card-text v-html="endDialogText">
+                <v-card-text v-html="endDialogText" class="text-gray-300">
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-tooltip bottom>
                         <template v-slot:activator="{ on }">
-                            <v-btn v-on="on" color="blue darken-1" flat @click="endDialog = false">OK</v-btn>
+                            <v-btn v-on="on" color="blue darken-1" flat @click="endDialog = false" class="rounded-md !text-gray-200 hover:!text-white">OK</v-btn>
                         </template>
-                        <span>You can start again in Help > IDE Tour</span>
+                        <span>Você pode iniciar de novo em Ajuda > Tour da IDE</span>
                     </v-tooltip>
                 </v-card-actions>
             </v-card>
@@ -169,32 +169,33 @@
     </div>
 </template>
 <script>
-  import Vue from "vue";
+  
   //========= load manager ==========//
   import bm from "@/engine/BoardManager";
   import pm from "@/engine/PackageManager";
   //import AsyncComponent from "@/engine/AsyncComponent";
   import AppEvents from "./event";
   import util from "@/engine/utils";
+  import { defineAsyncComponent } from 'vue';
   import TourSteps from "./tour";
   //import AppToolbar from "@/engine/views/AppToolbar";
   //import AppFooter from "@/engine/views/AppFooter";
   //import {Multipane, MultipaneResizer} from "vue-multipane";
   //import draggable from "vuedraggable";
-  const electron = require("electron");
-  const {Menu, MenuItem, globalShortcut} = require("electron").remote;
+  const isElectron = false;
+  let electron = null; let Menu = undefined; let MenuItem = undefined; let globalShortcut = undefined;
   //========= updating =========//
   import AppUpdater from "@/engine/updater/AppUpdater";
 
-  require("vue-tour/dist/vue-tour.css");
+  // require("vue-tour/dist/vue-tour.css");
 
   export default {
     components: {
       AppToolbar : ()=> import("@/engine/views/AppToolbar"),
-      Multipane : ()=> import("vue-multipane").then(({Multipane})=> Multipane),
-      MultipaneResizer : ()=> import("vue-multipane").then(({MultipaneResizer})=>MultipaneResizer),
+      // Multipane : ()=> import("vue-multipane").then(({Multipane})=> Multipane),
+      // MultipaneResizer : ()=> import("vue-multipane").then(({MultipaneResizer})=>MultipaneResizer),
       draggable : ()=> import("vuedraggable"),
-      AsyncComponent : () => import("@/engine/AsyncComponent"),
+      AsyncComponent : defineAsyncComponent(() => import("@/engine/AsyncComponent")),
       AppFooter : ()=> import("@/engine/views/AppFooter"),
       AppUpdater
       //AppUpdater : () => import("@/engine/updater/AppUpdater")
@@ -224,36 +225,26 @@
     },
     async created() {
       AppEvents.forEach(item => {
-        this.$on(item.name, item.callback);
+        this.$global.$on(item.name, item.callback);
       });
       window.getApp = this;
       //======== INIT ========//
       //----- load color -----//
       this.$vuetify.theme.primary = this.$global.setting.color;
       this.$global.$on("board-change",await this.renderComponents);
-      //----- check for update -----//
-      this.$global.$on("check-update", this.checkUpdate);
+      //----- check for update -----// (no web)
+      if (electron && electron.ipcRenderer) {
+        this.$global.$on("check-update", this.checkUpdate);
+      }
       this.$global.$on("render-packages", await this.renderComponents);
-      electron.ipcRenderer.on("file-board-folder", () => {
-        electron.shell.openItem(util.boardDir);
-      });
-      electron.ipcRenderer.on("file-platform-folder", () => {
-        electron.shell.openItem(util.platformDir);
-      });
-      electron.ipcRenderer.on("file-plugin-folder", () => {
-        electron.shell.openItem(util.pluginDir);
-      });
-      electron.ipcRenderer.on("help-tour", () => {
-        this.$global.setting.firstUse = true;
-        window.getApp.firstUseDialog = true;
-      });
-      this.$track.pageview("/", "/home", document.title).then((response) => {
-        window.getApp.$track.clientID = response.clientID;
-        window.getApp.$track.set("clientID", response.clientID);
-        return response;
-      }).catch((err) => {
-        return err;
-      });
+      // web-only: sem handlers IPC
+      if (this.$track && typeof this.$track.pageview === 'function') {
+        this.$track.pageview("/", "/home", document.title).then((response) => {
+          window.getApp.$track.clientID = response.clientID;
+          window.getApp.$track.set("clientID", response.clientID);
+          return response;
+        }).catch((err) => { return err; });
+      }
     },
     methods: {
       closeTab(name) {
@@ -305,11 +296,11 @@
                 target_menu = menu.items.find(item=>item.label === pack_menu_item.main);
               }
               if(target_menu){
-                pack_menu_item.click = () => Vue.prototype.$global.$emit(pack_menu_item.event_emit);
+                pack_menu_item.click = () => this.$global.$emit(pack_menu_item.event_emit);
                 globalShortcut.unregister(pack_menu_item.accelerator);
                 globalShortcut.register(pack_menu_item.accelerator, () => {
                   console.log("Emiting event...");
-                  Vue.prototype.$global.$emit(pack_menu_item.event_emit);
+                  this.$global.$emit(pack_menu_item.event_emit);
                 });
                 let item = new MenuItem(pack_menu_item);
                 let target_submenu = target_menu.submenu.items.find(item=>item.label === pack_menu_item.label);
@@ -376,8 +367,8 @@
         console.log("-------- app package --------");
         console.log(appPackage);
         await this.buildPackageMenu(appPackage);
-        Vue.prototype.$global.packages = await this.loadPackage(appPackage);
-        Vue.prototype.$global.$emit("app-package-loaded");
+        this.$global.packages = await this.loadPackage(appPackage);
+        this.$global.$emit("app-package-loaded");
         console.log("emitting app-package-loaded");
       },
       reloadBoardPackage : async function() {
@@ -387,8 +378,8 @@
         console.log("--------- board package ---------");
         console.log(boardPackage);
         await this.buildPackageMenu(boardPackage);
-        Vue.prototype.$global.board.package = await this.loadPackage(boardPackage);
-        Vue.prototype.$global.$emit("board-package-loaded");
+        this.$global.board.package = await this.loadPackage(boardPackage);
+        this.$global.$emit("board-package-loaded");
         console.log("emitting board-package-loaded");
       },
       onResizePanel(pane, container, size) {
@@ -549,7 +540,7 @@
         minWidth: 500px;
         width: 100%;
         height: 100%;
-        background-color: #999;
+        background-color: transparent;
     }
 
     .multiplate-warper {

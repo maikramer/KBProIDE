@@ -1,9 +1,9 @@
 import util from "@/engine/utils";
-import fs from "fs";
 
-const os = require("os");
-const request = require("request");
-const progress = require("request-progress");
+const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+let fs = null; try { if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
+let os = null; try { if (isElectron) { os = require("os"); } } catch(e) { os = { arch(){ return 'x64'; } }; }
+let got = null;
 
 const getPlatformInfo = function(name) {
   return new Promise((resolve, reject) => {
@@ -37,17 +37,19 @@ const installPlatformByName = function(name, cb) {
       if (info.zip == null){
         reject("platform not contain release zip file");
       }
-      if (fs.readdirSync(util.platformDir).includes(info.name)) {
+      if (!isElectron || !fs) { reject("not supported in web"); }
+      else if (fs.readdirSync(util.platformDir).includes(info.name)) {
         reject("your already have this platform");
       } else { //download file
-        let arch = require('os').arch();
-        if (process.platform === "win32" && arch === "ia32") {
+        let arch = os.arch();
+        const platform = (typeof process !== 'undefined' && process.platform) ? process.platform : 'web';
+        if (platform === "win32" && arch === "ia32") {
           info.zip =  info.zip + "-win32.zip";
-        }else if(process.platform === "win32" && arch === "x64"){
+        }else if(platform === "win32" && arch === "x64"){
           info.zip =  info.zip + "-win64.zip";
-        }else if (process.platform === "darwin") {
+        }else if (platform === "darwin") {
           info.zip = info.zip + "-darwin.zip";
-        } else if (process.platform === "linux") {
+        } else if (platform === "linux") {
           if(arch.startsWith("armv7")){
             info.zip = info.zip + "-linux-armv7.zip";
           }else if(arch.startsWith("arm64")){
@@ -58,27 +60,17 @@ const installPlatformByName = function(name, cb) {
         }
         let zipUrl = info.zip;
         let zipFile = os.tmpdir() + "/" + util.randomString(10) + ".zip";
-        progress(
-          request(zipUrl),
-          {
-            throttle: 2000, // Throttle the progress event to 2000ms, defaults to 1000ms
-            delay: 1000,    // Only start to emit after 1000ms delay, defaults to 0ms
-            followAllRedirects: true,
-            follow: true,
-          },
-        ).on("progress", function(state) {
-          cb && cb({process: "platform", status: "DOWNLOAD", state: state});
-        }).on("error", function(err) {
-          reject(err);
-        }).on("end", function() { //downloaded
-          util.unzip(zipFile, {dir: util.platformDir}, p => {
-            cb && cb({process: "platform", status: "UNZIP", state: p});
-          }).then(()=>{
-            resolve();
-          }).catch(err=>{
-            reject(err);
-          });
-        }).pipe(fs.createWriteStream(zipFile));
+        got.stream(zipUrl)
+          .on("downloadProgress", p => {
+            cb && cb({ process: "platform", status: "DOWNLOAD", state: { percent: p.percent, transferred: p.transferred, total: p.total } });
+          })
+          .on("error", err => reject(err))
+          .on("end", () => {
+            util.unzip(zipFile, {dir: util.platformDir}, p => {
+              cb && cb({process: "platform", status: "UNZIP", state: p});
+            }).then(()=>resolve()).catch(err=>reject(err));
+          })
+          .pipe(fs.createWriteStream(zipFile));
       }
     });
   })

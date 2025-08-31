@@ -2,17 +2,15 @@ import util from "@/engine/utils";
 import pfm from "@/engine/PlatformManager";
 //import axios from 'axios';
 
-const { promises: fs } = require("fs");
-const rfs = require("fs");
+let fs = null; let rfs = null; try { if (typeof process !== 'undefined' && process.versions && process.versions.electron) { fs = require("fs").promises; rfs = require("fs"); } } catch (e) { fs = null; rfs = null; }
 
-const fileExists = async path => !!(await fs.stat(path).catch(e => false));
+const fileExists = async path => { if (!fs) return false; return !!(await fs.stat(path).catch(e => false)); };
 
-const os = require("os");
-const path = require("path");
-const request = require("request");
-const progress = require("request-progress");
+let os = null; try { if (typeof process !== 'undefined' && process.versions && process.versions.electron) { os = require("os"); } } catch(e) { os = null; }
+let path = null; try { if (typeof process !== 'undefined' && process.versions && process.versions.electron) { path = require("path"); } } catch(e) { path = null; }
+let got = null;
 //const db = Vue.prototype.$db;
-const request_promise = require("request-promise");
+const request_promise = null;
 
 let listedPackages = {};
 
@@ -66,7 +64,9 @@ const listPackage = async function() {
 
 const listOnlinePackage = function(query) {
   return new Promise((resolve, reject) => {
-    Vue.prototype.$db2.getItems("packages", query).then((data, meta) => {
+    const api = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db2) || null;
+    if (!api || typeof api.getItems !== 'function') { reject('db2 unavailable'); return; }
+    api.getItems("packages", query).then((data, meta) => {
       resolve({ packages: data.data, meta: data.meta });
     }).catch(err => {
       console.error("list online packages error : " + err);
@@ -89,22 +89,12 @@ const installOnlinePackage = function(info, cb) {
     let zipUrl = info.git + "/archive/master.zip";
     let zipFile = os.tmpdir() + "/" + util.randomString(10) + ".zip";
     let file = rfs.createWriteStream(zipFile);
-    progress(
-      request(zipUrl),
-      {
-        throttle: 2000, // Throttle the progress event to 2000ms, defaults to 1000ms
-        delay: 1000,    // Only start to emit after 1000ms delay, defaults to 0ms
-        followAllRedirects: true,
-        follow: true
-      }
-    ).on("progress", function(state) {
-      cb && cb({ process: "package", status: "DOWNLOAD", state: state });
-    }).on("error", function(err) {
-      reject(err);
-    }).on("end", function() {
-      file.end();
-      return resolve(zipFile);
-    })
+    got.stream(zipUrl)
+      .on("downloadProgress", p => {
+        cb && cb({ process: "package", status: "DOWNLOAD", state: { percent: p.percent, transferred: p.transferred, total: p.total } });
+      })
+      .on("error", err => reject(err))
+      .on("end", () => { file.end(); resolve(zipFile); })
       .pipe(file);
   }).then((zipFile) => { //unzip file
     return util.unzip(zipFile, { dir: util.packageDir }, p => {
@@ -179,7 +169,9 @@ const publishPackage = function(url) {
         json = eval(res);
         if (json.name) { //search if existing
           let query = { filter: { name: { eq: json.name } } };
-          return Vue.prototype.$db2.getItems("packages", query).then((data, meta) => {
+          const api2 = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db2) || null;
+          if (!api2 || typeof api2.getItems !== 'function') { return false; }
+          return api2.getItems("packages", query).then((data, meta) => {
             return data.data && data.data.length === 1 && data.data[0];
           }).catch(err => {
             console.error("list online plugin error : " + err);
@@ -210,7 +202,9 @@ const publishPackage = function(url) {
               json.keywords = [json.keywords]
             }
           }
-          Vue.prototype.$db_dev.createItem("packages", json)
+          const devApi = (typeof window !== 'undefined' && window.app && window.app.config && window.app.config.globalProperties && window.app.config.globalProperties.$db_dev) || null;
+          if (!devApi || typeof devApi.createItem !== 'function') { throw new Error('db_dev unavailable'); }
+          devApi.createItem("packages", json)
             .then(res => {
               //console.log(res);
               if (res) {

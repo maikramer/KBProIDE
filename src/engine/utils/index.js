@@ -1,35 +1,60 @@
-import file from "./file";
 import ui from "./ui";
 
-const path = require("path");
-const fs = require("fs");
-const rootDir = __dirname; // require('electron-root-path').rootPath;
-const os = require("os");
+// web-only: não requisitar módulos Node
+let path = { resolve: (p)=>p };
 
-import unzip from "./unzip";
+let fs = null;
+if (!fs) {
+  fs = {
+    existsSync: function(){ return false; },
+    readFileSync: function(){ return ""; },
+    readdirSync: function(){ return []; },
+    statSync: function(){ return { isDirectory: function(){ return false; } }; },
+    lstatSync: function(){ return { isDirectory: function(){ return false; } }; },
+    unlinkSync: function(){},
+    rmdirSync: function(){},
+  };
+}
+const rootDir = __dirname; // require('electron-root-path').rootPath;
+let os = { arch: function(){ return "x64"; } };
+
+let unzipModule = { unzip: function(){ return Promise.reject("unzip not available in web"); } };
+try {
+  if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+    // evitar referência direta a require em ambiente web
+    const dynReq = (0, eval)('require');
+    const mod = dynReq ? dynReq("./unzip") : null;
+    unzipModule = mod && mod.default ? mod.default : mod || unzipModule;
+  }
+} catch (e) {}
 import compiler from "./compiler";
 import regex_parser from "./regex-parser";
 
 var baseDir = "";
 console.log("app dirname = " + rootDir);
-if (process.env.NODE_ENV === "development") {
-  if (process.platform === "win32") {
+// proteger acesso a process no ambiente web
+const hasProcess = (typeof process !== 'undefined');
+const nodeEnv = hasProcess && process.env ? process.env.NODE_ENV : "production";
+const platform = hasProcess && process.platform ? process.platform : "web";
+
+if (hasProcess && nodeEnv === "development") {
+  if (platform === "win32") {
     baseDir = rootDir + "/../../../../../..";
-  } else if (process.platform === "darwin") {
+  } else if (platform === "darwin") {
     baseDir = rootDir + "/../../../../../../../..";
-  } else if (process.platform === "linux") {
+  } else if (platform === "linux") {
     baseDir = rootDir + "/../../../../../..";
   }
-} else {
-  if (process.platform === "win32") {
+} else if (hasProcess) {
+  if (platform === "win32") {
     baseDir = rootDir + "/../..";
-  } else if (process.platform === "darwin") {
+  } else if (platform === "darwin") {
     baseDir = rootDir + "/../..";
-  } else if (process.platform === "linux") {
+  } else if (platform === "linux") {
     baseDir = rootDir + "/../..";
   }
 }
-baseDir = path.resolve(baseDir);
+try { baseDir = path ? path.resolve(baseDir) : baseDir; } catch (e) {}
 console.log(`baseDir=${baseDir}`);
 
 var humanFileSize = function(bytes, si = true) {
@@ -48,15 +73,24 @@ var humanFileSize = function(bytes, si = true) {
   return bytes.toFixed(1) + " " + units[u];
 };
 
-const requireFunc = typeof __webpack_require__ === "function"
-    ? __non_webpack_require__
-    : require;
+const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+let requireFunc = function(){ return null; };
+try {
+  if (typeof __webpack_require__ === "function" && typeof __non_webpack_require__ !== "undefined") {
+    requireFunc = __non_webpack_require__;
+  }
+} catch (e) {}
+if (!requireFunc.cache) { requireFunc.cache = {}; }
 const clearCacheRequire = function(){
-  Object.keys(requireFunc.cache).forEach(function(key) {
-    delete requireFunc.cache[key];
-  });
+  if (!requireFunc || !requireFunc.cache) { return; }
+  try {
+    Object.keys(requireFunc.cache).forEach(function(key) {
+      delete requireFunc.cache[key];
+    });
+  } catch (e) {}
 };
 const vueLoader = function(file) { //this section from https://www.npmjs.com/package/vue-file-compiler
+  if (!fs) { return null; }
   let vue = fs.readFileSync(file, "utf-8");
   let validRegex = new RegExp(
       "^[^]*<template>[^]+<\/template>[^]*<script>[^]*export default[^]+<\/script>[^]*(<style[^]*>[^]*<\/style>[^]*)?$",
@@ -314,7 +348,7 @@ export default {
   vueLoader,
   vueRuntimeComponent,
   //------- zip --------//
-  unzip: unzip.unzip,
+  unzip: unzipModule.unzip,
   compiler,
   regex: regex_parser,
 };

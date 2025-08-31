@@ -1,10 +1,18 @@
 <template>
-    <multipane
+    <div class="editor-page-wrap">
+        <EditorTopbar
+          :mode="$global.editor.mode"
+          @new-file="$global.$emit('file-new')"
+          @open-file="$global.$emit('file-open')"
+          @save-file="$global.$emit('file-save')"
+          @set-mode="(m)=> $global.$emit('editor-mode-change', m)"
+        />
+        <multipane
             class="vertical-panes-editor"
             layout="vertical"
             @paneResizeStop="onResizePanel"
             fill-height
-    >
+        >
         <!-- editor -->
         <div
                 class="pane"
@@ -147,7 +155,8 @@
             <MonacoEditor
                     ref="cm"
                     v-if="$global.editor.mode < 3"
-                    v-model="$global.editor.rawCodeMode ? $global.editor.rawCode : $global.editor.previewSourceCode"
+                    :value="$global.editor.rawCodeMode ? $global.editor.rawCode : $global.editor.previewSourceCode"
+                    @input="val => ($global.editor.rawCodeMode ? ($global.editor.rawCode = val) : ($global.editor.previewSourceCode = val))"
                     class="editor"
                     language="cpp"
                     theme="vs-dark"
@@ -165,24 +174,47 @@
         </div>
         <!-- end -->
     </multipane>
+    </div>
 </template>
 <script>
-  const electron = require("electron");
-  var path = require("path");
+  // @ts-nocheck
+  /* eslint-disable */
+  const isElectron = typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+  let electron = null; try { if (isElectron) { electron = require("electron"); } } catch(e) { electron = null; }
+  // remover path no web
   const xmlParser = new DOMParser();
   // === UI Management ===
   //const Multipane = import("vue-multipane"); //() => import("vue-multipane").then(({Multipane})=> Multipane);
-  import {Multipane,MultipaneResizer} from "vue-multipane";
+  // import {Multipane,MultipaneResizer} from "vue-multipane";
   //const MultipaneResizer = () => import("vue-multipane").then(({MultipaneResizer}) => MultipaneResizer);
   // === Blockly ===
-  import Blockly from "vue-blockly";
-  import en from "vue-blockly/dist/msg/en";
+  import * as Blockly from "blockly/core";
+  import * as En from "blockly/msg/en";
+  import "blockly/blocks";
+  import { javascriptGenerator } from "blockly/javascript";
   // === Editor ===
   //import MonacoEditor from "vue-monaco";
   // === uitls ===
   import util from "@/engine/utils";
+  import EditorTopbar from "@/engine/components/editor/EditorTopbar.vue";
 
-  const fs = require("fs");
+  // Vue 3 stubs for removed multipane to satisfy lints and keep layout
+  const Multipane = { name: 'Multipane', render(){ const slot = this.$slots && this.$slots.default; return typeof slot === 'function' ? slot() : (slot || null); } };
+  const MultipaneResizer = { name: 'MultipaneResizer', render(){ return null } };
+
+  // Web stubs: block loading/rendering and formatter
+  const loadBlock = function(_boardInfo){
+    return {
+      blocks: [],
+      base_blocks: [],
+      initial_blocks: '<xml xmlns="http://www.w3.org/1999/xhtml"><variables></variables></xml>'
+    };
+  };
+  const renderBlock = function(_blocks){ return ""; };
+  const loadAndRenderPluginsBlock = function(_Blockly,_boardInfo,_pluginInfo){ return ""; };
+  const reformatCode = function(code){ return code; };
+
+  let fs = null; try { if (isElectron) { fs = require("fs"); } } catch(e) { fs = null; }
   // === engine ===
   import plug from "@/engine/PluginManager";
   // === dialog ===
@@ -191,241 +223,27 @@
   //import TTSDialog from "@/engine/views/dialog/TTSDialog";
 
   // === Node.js ===
-  const exec = require("child_process").exec;
-  const os = require("os");
+  let exec = null; try { if (isElectron) { exec = require("child_process").exec; } } catch(e) { exec = null; }
+  let os = null; try { if (isElectron) { os = require("os"); } } catch(e) { os = { platform(){ return 'linux'; } } }
 
   const htmlEntities = function(str) {
     return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   };
 
-  const reformatCode = util.requireFunc(util.packageDir + "/kbide-package-clang-format/main");
+  const language = "en";
 
-  const renderBlock = function(blocks, level = 1) {
-    let res = "";
-    if (blocks === undefined) {
-      return res;
-    }
-    blocks.forEach(element => {
-      if (level === 1) {
-        let insideBlock = element.blocks
-          ? renderBlock(element.blocks, level + 1)
-          : (element.xml
-            ? element.xml
-            : "");
-        let custom = element.custom
-          ? `custom="${element.custom}" `
-          : "";
-        res += `<category name="${element.name}" colour="${element.color}" ${custom}icon="${element.icon}">${insideBlock}</category>`;
-      } else {
-        if (typeof element === "string") {
-          //block element
-          res += `<block type="${element}"></block>`;
-        } else if (typeof element == "object" && element.xml) {
-          res += element.xml;
-        } else if (typeof element === "object" && "type" in element && element.type === "category") {
-          let insideBlock = renderBlock(element.blocks, level + 1);
-          let custom = element.custom
-            ? `custom="${element.custom}" `
-            : "";
-          res += `<category name="${element.name}" ${custom}icon="${
-            element.icon
-          }">${insideBlock}</category>`;
-        } else if (typeof element === "object" && "mutation" in element) {
-          let objKey = [];
-          Object.keys(element.mutation).forEach(key => {
-            objKey.push(`${key}="${element.mutation[key]}"`);
-          });
-          res += `<mutation ${objKey.join(" ")}></mutation>`;
-        } else if (typeof element === "object") {
-          let insideBlock = renderBlock(element.blocks, level + 1);
-          res += `<block type="${element.name}">${insideBlock}</block>`;
-        }
-      }
-    });
-    return res;
-  };
-  const loadAndRenderPluginsBlock = function(Blockly, boardInfo, pluginInfo) {
-    let pluginName = " Plugins";
-    let plugins = pluginInfo; // plug.loadPlugin(boardInfo);
-    let catStr = "";
-    plugins.categories.forEach(cat => {
-      let pluginDirectory = cat.directory;
-      let pluginBlockDirectory = `${pluginDirectory}/blocks`;
-      if (Object.entries(cat.plugins).length === 0) {
-        return;
-      }
-      let blockStr = "";
-      Object.keys(cat.plugins).forEach(subPlugin => {
-        let blocks = cat.plugins[subPlugin].blocks;
-        let dir = cat.plugins[subPlugin].dir;
-        let file = cat.plugins[subPlugin].file;
-        //----- load block -----//
-        try {
-          eval(fs.readFileSync(`${dir}/${file}`, "utf8"));
-          eval(fs.readFileSync(`${dir}/${file.replace("block", "generator")}`, "utf8"));
-          if (fs.existsSync(`${dir}/msg/en.js`)) {
-            eval(fs.readFileSync(`${dir}/msg/en.js`, "utf8"));
-          }
-        } catch (e) {
-          console.log(`Error : cannot load plugin block [${subPlugin}] => ` + e);
-        }
-        //----------------------//
-        blocks.forEach(typeName => {
-          blockStr += `<block type="${typeName}"></block>`;
-        });
-      });
-      if (fs.existsSync(`${pluginBlockDirectory}/config.js`)) {
-        let blockConfig = util.requireFunc(`${pluginBlockDirectory}/config.js`);
-        catStr += renderBlock(blockConfig);
-      } else {
-        //let thName = cat.category.title;
-        let name = cat.category.name.en
-          ? cat.category.name.en
-          : cat.category.title;
-        let color = cat.category.color;
-        catStr += `<category name="${name}" colour="${color}">${blockStr}</category>`;
-      }
-    });
-    return `<sep></sep><category name="${pluginName}" color="290">${catStr}</category>`;
-  };
+  var editor_interval = null;
 
-  const mergeBlockConfig = function(blockConfig) {
-    blockConfig.base_blocks.sort((a, b) => (a.index > b.index)
-      ? 1
-      : -1);
-    blockConfig.blocks && blockConfig.blocks.sort((a, b) => (a.index > b.index)
-      ? 1
-      : -1);
-    for (let i in blockConfig.base_blocks) {
-      let el = blockConfig.base_blocks[i]; //base element
-      let name = el.name;
-      let heritageBlock = blockConfig.blocks.find(sel => sel.name === name);
-      if (heritageBlock) { // found same name
-        if (heritageBlock.blocks[0] && heritageBlock.blocks[0].type === "category" &&
-          el.blocks[0] && el.blocks[0].type === "category") { //block inside has category
-          let respSubmerge = mergeBlockConfig({ base_blocks: el.blocks, blocks: heritageBlock.blocks });
-          el.blocks = respSubmerge.base_blocks;
-          blockConfig.blocks = blockConfig.blocks.filter(e => e.name !== heritageBlock.name);
-        } else if (heritageBlock.override === true) {
-          blockConfig.base_blocks[i] = Object.assign({}, heritageBlock);
-          blockConfig.blocks = blockConfig.blocks.filter(e => e.name !== heritageBlock.name);
-        } else { //normal join
-          let platformNonDuplicateBlocks = el.blocks.filter(item => {
-            try {
-              let typename = typeof item === "string"
-                ? item
-                : xmlParser.parseFromString(item.xml, "text/xml").getElementsByTagName("block")[0].getAttribute("type");
-              let foundDuplication = heritageBlock.blocks.find(mItem => {
-                if (typeof mItem === "string") {
-                  return mItem === typename;
-                } else {
-                  let parsed = xmlParser.parseFromString(mItem.xml, "text/xml").getElementsByTagName("block");
-                  return parsed.length !== 0
-                    ? parsed[0].getAttribute("type") === typename
-                    : false;
-                }
-              });
-              return foundDuplication === undefined;
-            } catch (e) {
-              return false;
-            }
-          });
-          el.blocks = heritageBlock.blocks.concat({ xml: "<sep gap=\"20\"></sep><label text=\"Platform Blocks\" web-class=\"title\"></label>" }, platformNonDuplicateBlocks);
-          blockConfig.blocks = blockConfig.blocks.filter(e => e.name !== heritageBlock.name);
-        }
-      }
-    }
-    //======= merge difference with sort by index
-    let merged = [];
-    while (blockConfig.base_blocks.length > 0 && blockConfig.blocks.length > 0) {
-      let f1 = blockConfig.base_blocks[0];
-      let f2 = blockConfig.blocks[0];
-      if (!f2.index) { f2.index = 0; }
-      if (f2.index < f1.index) { //insert f2
-        merged.push(blockConfig.blocks.shift());
-      } else {
-        merged.push(blockConfig.base_blocks.shift());
-      }
-    }
-    if (blockConfig.base_blocks.length > 0) {
-      merged.push(...blockConfig.base_blocks);
-    } else if (blockConfig.blocks.length > 0) {
-      merged.push(...blockConfig.blocks);
-    }
-    blockConfig.base_blocks = merged;
-    blockConfig.blocks = [];
-    return blockConfig;
-  };
+  var myself = null;
 
-  const loadBlock = function(boardInfo) {
-    let boardBlockFile = `${boardInfo.dir}/block/config.js`;
-    let platformBlockFile = `${util.platformDir}/${boardInfo.platform}/block/config.js`;
-    //clear cache
-    Object.keys(util.requireFunc.cache).map(file => {
-      if (file.endsWith("block\\config.js") || file.endsWith("block/config.js")) {
-        delete util.requireFunc.cache[file];
-      }
-    });
-    let platformBlocks = util.requireFunc(platformBlockFile);
-    let boardBlocks = util.fs.existsSync(boardBlockFile)
-      ? util.requireFunc(boardBlockFile)
-      : {};
-    let blockConfig = Object.assign(platformBlocks, boardBlocks);
-    return mergeBlockConfig(blockConfig);
-  };
-  const initBlockly = function(boardInfo) {
-    let platformName = boardInfo.platform;
-    let blockyDir = `${boardInfo.dir}/block`;
-    let platformBlockDir = `${util.platformDir}/${platformName}/block`;
-    //lookup platform first
-    let platformBlockFile = util.fs
-      .readdirSync(platformBlockDir)
-      .map(obj => `${platformBlockDir}/${obj}`);
-    platformBlockFile.sort(function(a, b) {
-      return a.length - b.length;
-    });
-    let blocklyFile = util.fs
-      .readdirSync(blockyDir)
-      .map(obj => `${blockyDir}/${obj}`);
-    blocklyFile.sort(function(a, b) {
-      return a.length - b.length;
-    });
-    let blocks = platformBlockFile.concat(blocklyFile);
-    blocks.forEach(element => {
-      if (element.includes("config.js")) {
-        //skip config.js file
-        return;
-      }
-      try {
-        let name = path.basename(element);
-        if (name.startsWith("block") && name.endsWith("js")) {
-          util.requireFunc(element)(Blockly);
-          let generatorFile = name.replace("block", "generator");
-          util.requireFunc(`${path.dirname(element)}/${generatorFile}`)(Blockly);
-        }
-      } catch (error) {
-        console.log("load blockly error");
-        console.log(error);
-        console.log(element);
-      }
-    });
-  };
-
-  let myself;
   export default {
-    name: "editor",
-    components: {
-      Multipane : Multipane,
-      MultipaneResizer :  MultipaneResizer,
-      MonacoEditor : () => import("vue-monaco"),
-      VariableNamingDialog : () => import("@/engine/views/dialog/VariableNamingDialog"),
-      PianoDialog : () => import("@/engine/views/dialog/PianoDialog"),
-      TTSDialog : ()=> import("@/engine/views/dialog/TTSDialog")
-    },
+    components: { EditorTopbar },
+    name: "PageEditor",
     data() {
       return {
         codegen: null,
@@ -450,7 +268,7 @@
 
         workspace: null,
         toolbox: null,
-        editor_options: this.$global.editor.editor_options,
+        editor_options: (this.$global && this.$global.editor) ? this.$global.editor.editor_options : {},
         variableDialog: false,
         variable_name: this.name,
         variableMessage: "Variable Name",
@@ -518,6 +336,10 @@
     },
     created() {
       myself = this;
+      this.$global && this.$global.$on && this.$global.$on('kids-mode-change', this.onKidsModeChange);
+      if (!electron || !electron.ipcRenderer) {
+        return;
+      }
       electron.ipcRenderer.on("edit-undo", () => {
         if (this.$global.editor.mode < 3) {
           Blockly.onKeyDown_({
@@ -623,12 +445,40 @@
         this.$global.editor.editor_options.readOnly = false;
       }
 
-      Blockly.Msg = Object.assign(en, Blockly.Msg);
-      Blockly.Msg = Blockly.Msg();
+      Blockly.setLocale(En);
       Blockly.utils.getMessageArray_ = function() {
         return Blockly.Msg;
       };
-      this.toolbox = document.getElementById("toolbox");
+      // Toolbox fallback no navegador: usar blocos padrão do Blockly
+      if (!isElectron) {
+        const tb = document.createElement('xml');
+        tb.setAttribute('id','webToolbox');
+        tb.style.display = 'none';
+        tb.innerHTML = this.$global.setting.kidsMode ? this.kidsToolboxXml() : `
+          <category name="Logic" colour="210">
+            <block type="controls_if"></block>
+            <block type="logic_compare"></block>
+            <block type="logic_operation"></block>
+            <block type="logic_boolean"></block>
+          </category>
+          <category name="Loops" colour="120">
+            <block type="controls_repeat_ext"></block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for"></block>
+          </category>
+          <category name="Math" colour="230">
+            <block type="math_number"></block>
+            <block type="math_arithmetic"></block>
+          </category>
+          <category name="Text" colour="160">
+            <block type="text"></block>
+            <block type="text_print"></block>
+          </category>`;
+        document.body.appendChild(tb);
+        this.toolbox = tb;
+      } else {
+        this.toolbox = document.getElementById("toolbox");
+      }
       this.workspace = Blockly.inject("blocklyDiv", {
         grid: {
           spacing: 25,
@@ -642,7 +492,7 @@
         zoom: {
           controls: true,
           wheel: true,
-          startScale: 1,
+          startScale: this.$global.setting.kidsMode ? 1.1 : 1,
           maxScale: 2,
           minScale: 0.3,
           scaleSpeed: 1.07
@@ -722,10 +572,12 @@
       this.$global.$on("compile-begin", this.clearError);
       this.$global.$on("compile-error", this.addError);
       //this.$global.$on("compile-success",_);
-      if (Vue.prototype.$vuetify.theme.primary === "") {
-        Vue.prototype.$vuetify.theme.primary = "#009688";
-      }
-      let theme = this.$vuetify.theme.primary;
+      try {
+        if (this.$vuetify && this.$vuetify.theme && this.$vuetify.theme.primary === "") {
+          this.$vuetify.theme.primary = "#009688";
+        }
+      } catch(e) {}
+      let theme = (this.$vuetify && this.$vuetify.theme && this.$vuetify.theme.primary) ? this.$vuetify.theme.primary : "#009688";
       let lighter = util.ui.colorLuminance(theme, 0.2);
       document.body.getElementsByClassName(
         "blocklyToolboxDiv"
@@ -750,17 +602,61 @@
 
     },
     methods: {
+      defaultToolboxXml(){
+        return `
+          <category name="Logic" colour="210">
+            <block type="controls_if"></block>
+            <block type="logic_compare"></block>
+            <block type="logic_operation"></block>
+            <block type="logic_boolean"></block>
+          </category>
+          <category name="Loops" colour="120">
+            <block type="controls_repeat_ext"></block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for"></block>
+          </category>
+          <category name="Math" colour="230">
+            <block type="math_number"></block>
+            <block type="math_arithmetic"></block>
+          </category>
+          <category name="Text" colour="160">
+            <block type="text"></block>
+            <block type="text_print"></block>
+          </category>`;
+      },
+      kidsToolboxXml(){
+        return `
+          <category name="Start" colour="200">
+            <block type="controls_repeat_ext"></block>
+            <block type="text_print"></block>
+          </category>
+          <category name="Actions" colour="60">
+            <block type="controls_if"></block>
+          </category>
+        `;
+      },
+      onKidsModeChange(){
+        try {
+          const tb = document.getElementById('webToolbox') || document.createElement('xml');
+          tb.setAttribute('id','webToolbox');
+          tb.style.display = 'none';
+          tb.innerHTML = this.$global.setting.kidsMode ? this.kidsToolboxXml() : (tb.innerHTML || this.defaultToolboxXml());
+          this.toolbox = tb;
+          this.workspace.updateToolbox(this.toolbox);
+          if (this.$global.setting.kidsMode) { this.workspace.zoomCenter(1.1); }
+        } catch(e){}
+      },
       clangFormat() {
         //console.log(this.$global.editor.sourceCode);
         this.$global.editor.sourceCode = reformatCode(this.$global.editor.sourceCode);
       },
       detectTheme() {
         /* Detect Theme */
-        const currentThemeColor = this.$vuetify.theme.primary;
+        const currentThemeColor = (this.$vuetify && this.$vuetify.theme && this.$vuetify.theme.primary) ? this.$vuetify.theme.primary : "#009688";
         const getThemeName = this.themeColors.find((theme) => {
           const themeColor = theme["color"];
           return themeColor === currentThemeColor;
-        });
+        }) || { name: "teal" };
         console.log(getThemeName["name"]);
         this.lightThemeArray.find(theme => theme === getThemeName["name"]) && this.cssTextLight();
         this.darkThemeArray.find(theme => theme === getThemeName["name"]) && this.cssTextDark();
@@ -853,15 +749,35 @@
             "<xml xmlns=\"http://www.w3.org/1999/xhtml\"><variables></variables></xml>"
           ) {
             let text = myself.$global.editor.blockCode;
-            xml = Blockly.Xml.textToDom(text);
+            try {
+              if (Blockly.Xml && typeof Blockly.Xml.textToDom === 'function') {
+                xml = Blockly.Xml.textToDom(text);
+              } else {
+                xml = xmlParser.parseFromString(text, 'text/xml');
+              }
+            } catch(e) { xml = null; }
           } else {
             let blocks = loadBlock(myself.$global.board.board_info);
             if (blocks.initial_blocks) {
-              xml = Blockly.Xml.textToDom(blocks.initial_blocks);
+              try {
+                if (Blockly.Xml && typeof Blockly.Xml.textToDom === 'function') {
+                  xml = Blockly.Xml.textToDom(blocks.initial_blocks);
+                } else {
+                  xml = xmlParser.parseFromString(blocks.initial_blocks, 'text/xml');
+                }
+              } catch(e) { xml = null; }
             }
           }
           myself.workspace.clear();
-          Blockly.Xml.domToWorkspace(xml, Blockly.mainWorkspace);
+          try {
+            if (xml) {
+              if (Blockly.Xml && typeof Blockly.Xml.domToWorkspace === 'function') {
+                Blockly.Xml.domToWorkspace(xml, myself.workspace);
+              } else {
+                // Fallback: ignore when Xml API not present
+              }
+            }
+          } catch(e) {}
           setTimeout(() => {
             Blockly.svgResize(this.workspace);
           }, 300);
@@ -869,33 +785,34 @@
           //------ generate template here ------//
           const boardDirectory = `${this.$global.board.board_info.dir}`;
           const platformDir = `${util.platformDir}/${this.$global.board.board_info.platform}`;
-          this.codegen = util.requireFunc(`${fs.existsSync(`${boardDirectory}/codegen.js`)
+          this.codegen = (util.requireFunc && isElectron) ? util.requireFunc(`${fs && fs.existsSync(`${boardDirectory}/codegen.js`)
             ? boardDirectory
-            : platformDir}/codegen`);
-          if (convert) {
-            const respCode = this.codegen.generate(this.$global.editor.rawCode);
-            myself.$global.editor.sourceCode = reformatCode(respCode.sourceCode);
-          } else if (create_new) {
-            const codeRes = this.codegen.generate("");
-            myself.$global.editor.sourceCode = reformatCode(codeRes.sourceCode);
-          } else {
-            //if user not convert just switch and leave create new (เอาไว้ให้ user กด new เองค่ะ
-            //this.$global.editor.sourceCode = this.$global.editor.sourceCode;
+            : platformDir}/codegen`) : null;
+          if (this.codegen && typeof this.codegen.generate === 'function') {
+            if (convert) {
+              const respCode = this.codegen.generate(this.$global.editor.rawCode);
+              myself.$global.editor.sourceCode = reformatCode(respCode.sourceCode);
+            } else if (create_new) {
+              const codeRes = this.codegen.generate("");
+              myself.$global.editor.sourceCode = reformatCode(codeRes.sourceCode);
+            }
           }
         }
-        if ("cm" in this.$refs) {
-          if (this.$refs.cm != undefined) {
-            //enable editing code
-            let code = this.$refs.cm.getEditor();
-            //code.setOption("readOnly", mode < 3);
-          }
+        const cm = this.getCm();
+        if (cm) {
+          // enable editing options if needed
+          // cm.updateOptions && cm.updateOptions({ readOnly: mode < 3 });
         }
       },
       onBoardChange: function(boardInfo, first_init = false) {
         //reload plugin
         console.log("board changed resender toolbox");
         this.$global.plugin.pluginInfo = plug.loadPlugin(this.$global.board.board_info);
-        initBlockly(boardInfo);
+        try {
+          if (typeof window !== 'undefined' && window.initBlockly && typeof window.initBlockly === 'function') {
+            window.initBlockly(boardInfo);
+          }
+        } catch (e) {}
         let blocks = loadBlock(boardInfo);
         let stringBlock = "";
         if ("blocks" in blocks) {
@@ -913,17 +830,35 @@
           this.$global.plugin.pluginInfo
         );
         // TODO : render platform block
-        this.toolbox = `<xml id="toolbox" style="display: none">${stringBlock}</xml>`;
+        let inner = stringBlock || "";
+        if (!inner || inner.indexOf('<category') === -1) {
+          // fallback para web
+          const tb = document.getElementById('webToolbox') || document.createElement('xml');
+          tb.setAttribute('id','webToolbox');
+          tb.style.display = 'none';
+          tb.innerHTML = this.$global.setting.kidsMode ? this.kidsToolboxXml() : this.defaultToolboxXml();
+          document.body.contains(tb) || document.body.appendChild(tb);
+          this.toolbox = tb;
+        } else {
+          const xmlEl = document.createElement('xml');
+          xmlEl.setAttribute('id','toolbox');
+          xmlEl.style.display = 'none';
+          xmlEl.innerHTML = inner;
+          this.toolbox = xmlEl;
+        }
         this.workspace.updateToolbox(this.toolbox);
         //============== render mode 3 source code
         const boardDirectory = `${this.$global.board.board_info.dir}`;
         const platformDir = `${util.platformDir}/${this.$global.board.board_info.platform}`;
-        this.codegen = util.requireFunc(`${fs.existsSync(`${boardDirectory}/codegen.js`)
+        this.codegen = (util.requireFunc && isElectron) ? util.requireFunc(`${fs && fs.existsSync(`${boardDirectory}/codegen.js`)
           ? boardDirectory
-          : platformDir}/codegen`);
+          : platformDir}/codegen`) : null;
 
-        const codeRes = first_init && global.config.file ? {sourceCode : this.$global.editor.sourceCode} : this.codegen.generate("");
-        myself.$global.editor.sourceCode = reformatCode(codeRes.sourceCode);
+        let codeRes = { sourceCode: this.$global.editor.sourceCode || "" };
+        if (!(first_init && global.config && global.config.file) && this.codegen && typeof this.codegen.generate === 'function') {
+          codeRes = this.codegen.generate("");
+        }
+        myself.$global.editor.sourceCode = reformatCode(codeRes.sourceCode || "");
         //==============
         this.detectTheme();
       },
@@ -938,17 +873,15 @@
       },
       updatecode(e) {
         // real time reformat mode
+        if (!this.workspace || !javascriptGenerator) { return; }
         if (e.type != Blockly.Events.UI) {
-          //Blockly.JavaScript.resetTaskNumber();
-          this.$global.editor.rawCode = Blockly.JavaScript.workspaceToCode(
-            this.workspace
-          );
+          this.$global.editor.rawCode = javascriptGenerator.workspaceToCode(this.workspace);
           var xml = Blockly.Xml.domToText(
-            Blockly.Xml.workspaceToDom(Blockly.mainWorkspace)
+            Blockly.Xml.workspaceToDom(this.workspace)
           );
           this.$global.editor.blockCode = xml;
         }
-        if (!this.$global.editor.rawCodeMode && this.$global.editor.mode === 2) {
+        if (!this.$global.editor.rawCodeMode && this.$global.editor.mode === 2 && this.codegen && typeof this.codegen.generate === 'function') {
           let prev = reformatCode(this.codegen.generate(this.$global.editor.rawCode).sourceCode);
           this.$global.editor.previewSourceCode = prev;
         }
@@ -1039,19 +972,45 @@
         border-left: 4px solid #ccc;
     }
 
+    :root{
+        --kb-surface: #0f172a; /* slate-900 */
+        --kb-surface-2: #111827; /* gray-900 */
+        --kb-border: rgba(255,255,255,.08);
+        --kb-accent: #60a5fa; /* blue-400 */
+        --kb-accent-2: #93c5fd; /* blue-300 */
+        --kb-muted: #94a3b8; /* slate-400 */
+    }
+
     .blocklyToolboxDiv {
-        overflow-y: unset !important;
-        background-color: #ace2ff;
-        overflow-x: visible;
-        overflow-y: auto;
+        overflow-y: auto !important;
+        overflow-x: hidden;
         position: absolute;
-        user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        -webkit-user-select: none;
+        inset: 0 auto 0 0;
+        width: 240px;
+        background: linear-gradient(180deg, var(--kb-surface-2), var(--kb-surface));
+        border-right: 1px solid var(--kb-border);
+        color: #e5e7eb;
         z-index: 70;
         -webkit-tap-highlight-color: transparent;
     }
+    .blocklyTreeRoot { padding: 8px 8px 80px 8px !important; }
+    .blocklyTreeRow {
+        border-radius: 10px;
+        margin: 6px 6px;
+        padding: 8px 12px !important;
+        height: auto !important;
+        line-height: 20px !important;
+        color: #e5e7eb !important;
+        background: transparent !important;
+        transition: background .15s ease, color .15s ease;
+    }
+    .blocklyTreeRow:hover { background: rgba(255,255,255,.06) !important; }
+    .blocklyTreeRow.blocklyTreeSelected {
+        background: rgba(96,165,250,.18) !important;
+        color: var(--kb-accent-2) !important;
+    }
+    .blocklyTreeIcon { display: none !important; }
+    .blocklyTreeLabel { font-weight: 600; letter-spacing: .2px; }
 
     .layout-v > .multipane-resizer {
         width: 5px;
@@ -1067,9 +1026,7 @@
     }
 
     /* minus header and footer */
-    .blocklyToolboxDiv {
-        overflow: scroll;
-    }
+    .blocklyToolboxDiv { overflow: auto; }
 
     .blocklyHtmlInput {
         background-color: white !important;

@@ -2,7 +2,8 @@ export default {
   endDialog: {
     title : {
       th : "ถึงเวลาลุย !",
-      en : "Time to explorer"
+      en : "Time to explorer",
+      pt : "Hora de explorar!"
     },
     content: {
       th: `เราได้แนะนำคุณสมบัติที่สำคัญของ IDE ไปแล้ว ส่วนอื่นที่เหลือเราให้คุณได้ทดลองได้ตามใจชอบและหวังว่าคุณจะถูกใจ
@@ -15,6 +16,10 @@ export default {
          onclick="require('electron').shell.openExternal('https://github.com/MakerAsia/KBProIDE/issues')">
           <strong> Github </strong> </a>
       `,
+      pt: `Pronto! Apresentamos os principais recursos. Agora você pode explorar a IDE. Se tiver sugestões ou problemas, avise-nos em
+      <a href="#"
+         onclick="require('electron').shell.openExternal('https://github.com/MakerAsia/KBProIDE/issues')">
+          <strong> Github </strong> </a>`
     },
   },
   button: {
@@ -29,6 +34,12 @@ export default {
       buttonPrevious: "Previous",
       buttonNext: "Next",
       buttonStop: "Finish",
+    },
+    pt: {
+      buttonSkip: "Pular tour",
+      buttonPrevious: "Anterior",
+      buttonNext: "Próximo",
+      buttonStop: "Concluir",
     },
   },
   th: [
@@ -265,6 +276,83 @@ we'll take a look later`,
         placement: "left",
         modifiers: {preventOverflow: {enabled: false}, hide: {enabled: false}},
       },
+    },
+  ],
+  pt: [
+    {//0
+      target: ".v-toolbar__content",
+      content: `Aqui fica o menu do KBIDE. Há itens à esquerda (IDE) e à direita (Placa). Vamos ver em detalhes mais tarde.`,
+      params: { highlight: true },
+    },
+    {//1
+      target: "#inspire > div.application--wrap > main > div > div",
+      content: `Este é o seu espaço principal de trabalho.`,
+      params: { highlight: true },
+    },
+    {//2
+      target: "#inspire > div.application--wrap > footer",
+      content: `A área inferior mostra o status do que acontece na IDE.`,
+      params: { highlight: true },
+    },
+    {//3
+      target: "#inspire > div.application--wrap > nav > div > div:nth-child(5)",
+      content: `Este menu altera o modo da IDE. Vamos dar uma olhada.`,
+      params: { highlight: true },
+    },
+    {//4
+      target: "#inspire > div.v-dialog__content.v-dialog__content--active > div > div > div.v-card__text > div > div > div",
+      content: `A IDE tem 2 modos</br>- Modo Blocos: programação visual</br>- Modo Código: C/CPP`,
+      params: { placement: "top", highlight: true, modifiers: {preventOverflow: {enabled: false}, hide: {enabled: false}} },
+    },
+    {//5
+      target: "#inspire > div.v-dialog__content.v-dialog__content--active > div > div > div.v-card__actions > button:nth-child(3)",
+      content: `Vamos mudar para o modo Programador e ver o que acontece.`,
+      params: { highlight: true },
+    },
+    {//6
+      target: "#inspire > div.v-dialog__content.v-dialog__content--active > div > div.v-card.v-sheet.v-sheet--tile.theme--light",
+      content: `Você pode mudar de modo a qualquer momento, mas lembre-se:</br></br><strong>É possível converter Blocos para Código, mas não o contrário.</strong></br></br>Sempre salve antes de mudar de modo.`,
+      params: { placement: "top", highlight: true, modifiers: {preventOverflow: {enabled: false}, hide: {enabled: false}} },
+    },
+    {//7
+      target: "#inspire > div.application--wrap > nav > div > div:nth-child(3)",
+      content: `Menu para gerenciar sua placa: instalar/atualizar/remover.`,
+      params: { highlight: true },
+    },
+    {//8
+      target: "#inspire > div.v-dialog__content.v-dialog__content--active > div > div > div.smooth-scrollbar > div.scroll-content > div > div:nth-child(2) > div > div",
+      content: `Placas instaladas. Você pode escolher livremente e instalar mais (com internet).`,
+      params: { highlight: true },
+    },
+    {//9
+      target: "#inspire > div.application--wrap > nav > div > div:nth-child(4)",
+      content: `Gerenciamento de plugins.`,
+      params: { highlight: true },
+    },
+    {//10
+      target: "#inspire > div.v-dialog__content.v-dialog__content--active > div > div > div.smooth-scrollbar > div.scroll-content > div > div:nth-child(5)",
+      content: `Nenhum plugin ainda. Você pode instalar aqui quando estiver online.`,
+      params: { highlight: true },
+    },
+    {//11
+      target: "#inspire > div.application--wrap > nav > div > div:nth-child(5)",
+      content: `Menu de exemplos com vários códigos.`,
+      params: { highlight: true },
+    },
+    {//12
+      target: "#inspire > div.v-dialog__content.v-dialog__content--active > div > div > div.smooth-scrollbar > div.scroll-content > div",
+      content: `Agrupamos exemplos com blocos e códigos. Lembre-se: janelas de exemplo não salvam automaticamente; salve antes de fechar.`,
+      params: { highlight: true },
+    },
+    {//13
+      target: "#inspire > div.application--wrap > nav > div > span:nth-child(6)",
+      content: `Configurações da IDE: tema, editor, etc.`,
+      params: { highlight: true },
+    },
+    {//14
+      target: "#themeSetting > div",
+      content: `Altere o tema e as propriedades do editor aqui.`,
+      params: { highlight: true, placement: "left", modifiers: {preventOverflow: {enabled: false}, hide: {enabled: false}} },
     },
   ],
 };
