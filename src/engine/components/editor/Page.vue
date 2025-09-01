@@ -929,6 +929,27 @@
       } catch(e) {}
 
     },
+    beforeUnmount() {
+      // Cleanup workspace to prevent connection errors
+      try {
+        if (this.workspace) {
+          // Remove change listener to prevent memory leaks
+          this.workspace.removeChangeListener(this.updatecode);
+          
+          // Clear workspace safely
+          this.workspace.clear();
+          
+          // Dispose of the workspace
+          if (typeof this.workspace.dispose === 'function') {
+            this.workspace.dispose();
+          }
+          
+          this.workspace = null;
+        }
+      } catch (e) {
+        console.warn('Error during workspace cleanup:', e);
+      }
+    },
     methods: {
 
 
@@ -1051,7 +1072,13 @@
           tb.style.display = 'none';
           tb.innerHTML = this.$global.setting.kidsMode ? this.kidsToolboxXml() : (tb.innerHTML || this.defaultToolboxXml());
           this.toolbox = tb;
-          this.workspace.updateToolbox(this.toolbox);
+          try {
+            if (this.workspace && this.toolbox) {
+              this.workspace.updateToolbox(this.toolbox);
+            }
+          } catch (e) {
+            console.warn('Error updating toolbox:', e);
+          }
           if (this.$global.setting.kidsMode) { this.workspace.zoomCenter(1.1); }
         } catch(e){}
       },
@@ -1215,7 +1242,13 @@ void loop() {
           xmlEl.innerHTML = inner;
           this.toolbox = xmlEl;
         }
-        this.workspace.updateToolbox(this.toolbox);
+        try {
+          if (this.workspace && this.toolbox) {
+            this.workspace.updateToolbox(this.toolbox);
+          }
+        } catch (e) {
+          console.warn('Error updating toolbox in onBoardChange:', e);
+        }
         //============== render mode 3 source code
         const boardDirectory = `${this.$global.board.board_info.dir}`;
         const platformDir = `${util.platformDir}/${this.$global.board.board_info.platform}`;
