@@ -1517,7 +1517,208 @@ void loop() {
               };
             }
             
-            console.log('Missing blocks added successfully');
+            // Additional sensor blocks
+            if (!window.Blockly.Blocks['pir_read']) {
+              window.Blockly.Blocks['pir_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("PIR pino")
+                      .appendField(new Blockly.FieldNumber(12), "PIN");
+                  this.setOutput(true, "Boolean");
+                  this.setColour('#FF6B6B');
+                  this.setTooltip("Sensor de movimento PIR");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['temp_read']) {
+              window.Blockly.Blocks['temp_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Temperatura pino")
+                      .appendField(new Blockly.FieldNumber(36), "PIN");
+                  this.setOutput(true, "Number");
+                  this.setColour('#FF6B6B');
+                  this.setTooltip("Sensor de temperatura");
+                }
+              };
+            }
+            
+            // Additional actuator blocks
+            if (!window.Blockly.Blocks['buzzer_tone']) {
+              window.Blockly.Blocks['buzzer_tone'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Buzzer pino")
+                      .appendField(new Blockly.FieldNumber(8), "PIN")
+                      .appendField("freq")
+                      .appendField(new Blockly.FieldNumber(1000), "FREQ");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#4ECDC4');
+                  this.setTooltip("Tocar som no buzzer");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['motor_control']) {
+              window.Blockly.Blocks['motor_control'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Motor pino")
+                      .appendField(new Blockly.FieldNumber(10), "PIN")
+                      .appendField("velocidade")
+                      .appendField(new Blockly.FieldNumber(255), "SPEED");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#4ECDC4');
+                  this.setTooltip("Controlar motor");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['relay_control']) {
+              window.Blockly.Blocks['relay_control'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Relé pino")
+                      .appendField(new Blockly.FieldNumber(7), "PIN")
+                      .appendField(new Blockly.FieldDropdown([["ON","HIGH"], ["OFF","LOW"]]), "STATE");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#4ECDC4');
+                  this.setTooltip("Controlar relé");
+                }
+              };
+            }
+            
+            // Additional ESP32 blocks
+            if (!window.Blockly.Blocks['gpio_digital_read']) {
+              window.Blockly.Blocks['gpio_digital_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Ler digital pino")
+                      .appendField(new Blockly.FieldNumber(13), "PIN");
+                  this.setOutput(true, "Boolean");
+                  this.setColour('#A65C81');
+                  this.setTooltip("Lê valor digital de um pino");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['gpio_analog_read']) {
+              window.Blockly.Blocks['gpio_analog_read'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Ler analógico pino")
+                      .appendField(new Blockly.FieldNumber(34), "PIN");
+                  this.setOutput(true, "Number");
+                  this.setColour('#A65C81');
+                  this.setTooltip("Lê valor analógico de um pino");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['wifi_begin']) {
+              window.Blockly.Blocks['wifi_begin'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("WiFi conectar")
+                      .appendField(new Blockly.FieldTextInput("SSID"), "SSID")
+                      .appendField("senha")
+                      .appendField(new Blockly.FieldTextInput("PASSWORD"), "PASSWORD");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#A65C81');
+                  this.setTooltip("Conectar ao WiFi");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['wifi_status']) {
+              window.Blockly.Blocks['wifi_status'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("WiFi conectado?");
+                  this.setOutput(true, "Boolean");
+                  this.setColour('#A65C81');
+                  this.setTooltip("Verifica se WiFi está conectado");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['serial_begin']) {
+              window.Blockly.Blocks['serial_begin'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Serial iniciar")
+                      .appendField(new Blockly.FieldNumber(115200), "BAUD");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#A65C81');
+                  this.setTooltip("Inicializar comunicação serial");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['serial_print']) {
+              window.Blockly.Blocks['serial_print'] = {
+                init: function() {
+                  this.appendValueInput("TEXT")
+                      .setCheck("String")
+                      .appendField("Serial imprimir");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#A65C81');
+                  this.setTooltip("Imprimir texto no serial");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['delay']) {
+              window.Blockly.Blocks['delay'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Aguardar")
+                      .appendField(new Blockly.FieldNumber(1000), "TIME")
+                      .appendField("ms");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#A65C81');
+                  this.setTooltip("Aguardar um tempo em milissegundos");
+                }
+              };
+            }
+            
+            if (!window.Blockly.Blocks['pin_mode']) {
+              window.Blockly.Blocks['pin_mode'] = {
+                init: function() {
+                  this.appendDummyInput()
+                      .appendField("Configurar pino")
+                      .appendField(new Blockly.FieldNumber(13), "PIN")
+                      .appendField("como")
+                      .appendField(new Blockly.FieldDropdown([["INPUT","INPUT"], ["OUTPUT","OUTPUT"], ["INPUT_PULLUP","INPUT_PULLUP"]]), "MODE");
+                  this.setPreviousStatement(true, null);
+                  this.setNextStatement(true, null);
+                  this.setColour('#A65C81');
+                  this.setTooltip("Configurar modo do pino");
+                }
+              };
+            }
+            
+            console.log('All missing blocks added successfully');
+            
+            // Force toolbox refresh to show new blocks
+            setTimeout(() => {
+              try {
+                if (this.workspace && this.workspace.getToolbox()) {
+                  this.workspace.getToolbox().refreshSelection();
+                  console.log('Toolbox refreshed after adding blocks');
+                }
+              } catch (e) {
+                console.warn('Error refreshing toolbox:', e);
+              }
+            }, 100);
           }
         }, 500);
       },
